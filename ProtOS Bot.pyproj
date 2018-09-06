@@ -266,6 +266,7 @@
     <Content Include="config\bot.xml" />
     <Content Include="RAT\config\config.xml" />
     <Content Include="RAT\NOINDEX.INF" />
+    <Content Include="README.md" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
