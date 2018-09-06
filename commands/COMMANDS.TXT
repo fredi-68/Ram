@@ -389,5 +389,5 @@ The coroutine Command.log posts a message in all configured audit log channels. 
 have to worry about setting up channel IDs or something similar. You can just use Command.log and it will work - on every server and every platform, as long as at least one logging channel is configured
 for a server. If there is no such channel, the call does nothing.
 However, to keep the spam down you should limit logging to security relevant information only. What does that mean exactly? Basically any action that has an impact on one or multiple members experience.
-This includes things lik timeouts, kicks, bans, changing role permissions, etc. Discord provides its own audit log by default, though you cannot write to it directly. Think of this feature as an
+This includes things like timeouts, kicks, bans, changing role permissions, etc. Discord provides its own audit log by default, though you cannot write to it directly. Think of this feature as an
 expandable alternative to that system. Try to view your command from an administrators perspective: What would you want to see, what would you consider unimportant?

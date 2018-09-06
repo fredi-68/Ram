@@ -1,7 +1,7 @@
 ﻿#Discord ProtOS Bot
 #Codename: Ram
 #
-#Author: Jascha "fredi_68" Hirsekorn
+#Author: fredi_68
 #
 
 #IMPORTS
@@ -361,7 +361,7 @@ class ResponseManager():
         may not send properly. The ResponseManager will attempt to split up messages that are longer than the character limit,
         however, this does not work in specific cases. For example, sending a message with a single line of more than 2000 characters
         will fail. Also, sending very long messages of over 5x the character limit may take severely longer due to Discord internal rate
-        limiting. There is no way of cicumventing this behaviour, so keep it short.
+        limiting. There is no way of cicumventing this behavior, so keep it short.
 
         If you try to send a message larger than 2000 characters a warning will be logged.
         """

@@ -1,6 +1,6 @@
 ﻿#Discord ProtOS Bot
 #
-#Author: Jascha "fredi_68" Hirsekorn
+#Author: fredi_68
 #
 #Voice recognition and tts support
 #This will have to wait until discord.py has properly implemented voice packet reading

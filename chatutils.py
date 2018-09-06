@@ -1,6 +1,6 @@
 ﻿#Discord ProtOS Bot
 #
-#Author: Jascha "fredi_68" Hirsekorn
+#Author: fredi_68
 #
 #Chat convenience methods. These mainly deal with string analysis and formatting
 

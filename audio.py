@@ -1,6 +1,6 @@
 #Discord ProtOS Bot
 #
-#Author: Jascha "fredi_68" Hirsekorn
+#Author: fredi_68
 #
 #Audio Engine
 #For when discord.py's audio engine just doesn't cut it anymore.

@@ -1,6 +1,6 @@
 #Discord ProtOS Bot
 #
-#Author: Jascha "fredi_68" Hirsekorn
+#Author: fredi_68
 #
 #Music Search Engines
 #Currently available search engines:

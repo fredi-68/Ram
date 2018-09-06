@@ -1,6 +1,6 @@
 #Discord ProtOS Bot
 #
-#Author: Jascha "fredi_68" Hirsekorn
+#Author: fredi_68
 #
 #Image manipulation library
 #THIS MODULE AND ITS FUNCTIONALITY IS OPTIONAL
