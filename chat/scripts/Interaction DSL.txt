@@ -1,0 +1,97 @@
+ABSTRACT
+
+This document introduces a DSL (Domain Specific Language) for writing automatic responses to certain chat messages.
+It is intended for scripting the behaviour of the conversation simulator in cases where a specific response is desired,
+instead of a randomly generated one.
+
+If you want to add your own scripts to the CIDSL interpreter, put them in this folder.
+The bot will load all files with the filename extension .ci and compile them on startup.
+
+SYNTAX
+
+The base syntax of the DSL is quite simple.
+The document is first parsed into a sequence of tokens. Tokens are whitespace and newline terminated sequences of characters. Whitespaces and newlines may be escaped using the special "%" character.
+To get a literal % use the sequence "%%". The document is then split into statements, at each unescaped newline character. These statements are then evaluated using the following scheme:
+
+<command> [arguments] -> <action>
+
+The command specifies an action to be taken by the interpreter, e.g. adding a new response or setting a local variable.
+The action specifies the result of the execution of the command. What exactly this means depends on the command, e.g. a string representing the response or the value of a variable.
+The arguments are optional information that influence how a command is executed.
+
+Neither the command nor any arguments may contain whitespaces or newlines, except as part of a string or if escaped using the % character.
+A statement is parsed left to right until an unescaped newline is encountered. At this point parsing terminates and the resulting tokens are evaluated
+left to right, with the first token being the command and the last the action. If an error is encountered, statement execution terminates immediately and
+the parser moves onto the next line.
+A command may span across multiple lines if the newlines are escaped using the % character or a newline occurs as part of a string.
+
+Comments may be added by putting the sequence "//" in front of a sequence of characters. Everything behind this sequence will be ignored by the parser.
+
+NAMES
+
+A name is a sequence of characters that references a value in the local namespace. It may consist of one or more alphanumeric characters, as well as the underscore character "_".
+A name may NOT begin with a character from the set [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] and may NOT have the same character sequence as any command, or the special sequences "None", "True" or "False".
+
+A name can contain pretty much any Python object in theory, but the way CIDSL handles names is a bit special. Usually a name doesn't contain a value directly but a type wrapper that enables additional
+operations to be executed on top of the value, depending on its type. If you store an expression that has an associated wrapper, its instance will be stored. The expression is NOT evaluated immediately in
+this case. CIDSL notices if you try to reference a wrapped expression in another command and will evaluate it if its result is required in the current context. This means, if you define an expression like an
+AND condition and store it in a name, it is only evaluated once that name is referenced in a responder call chain.
+
+TYPES
+
+-Strings-
+A string is denoted by doubled quotationmarks (the " character) surrounding a sequence of zero or more characters. A literal " may be escaped using the character % (e.g. %"). The sequence "" is special and
+called the "empty string". It's value will compare equal to the boolean value False and the special type None. All other strings will compare equal to True instead.
+Names that are defined in the local or global namespace can be referred to within a string using a sequence like "%name"
+
+-Numbers-
+A number is a sequence of 1 or more characters from the set [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], with an optional sign identifier directly in front, which can be either + or -. A number may not contain any other
+characters. Any sequence exclusively consisting of "0" characters will compare equal to the boolean value False and the special type None, all other combinations to True.
+
+-None-
+A special type. This type is used as a placeholder when no value is present. It compares equal to the boolean value False.
+
+-Boolean-
+A type identifying a truth value. There are two values of this type, "True" and "False". 
+
+OPERATORS
+
+-Inversion-
+The result of a boolean expression may be inverted using the ! character. For example, !True compares equal to False and !False compares equal to True.
+
+-Substring-
+The operator # is a unary operator that checks if a given string is a substring of the input message. It returns a boolean value: True if the string is a substring of the input message, False otherwise.
+The # operator is not case sensitive.
+E.g.: #"Hello" evaluates to True if the input message is "Hello World", False if the input message is "Gotta go fast".
+
+OTHER EXPRESSIONS
+
+-Condition-
+A condition represents a boolean expression. It is a sequence of operations that results in either True or False. There are two types of conditions:
+	(expr1, expr2, ... , exprn) evaluates to True if ALL of the expressions evaluate to True.
+	[expr1, expr2, ... , exprn] evaluates to True if ANY of the expressions evaluate to True.
+Since a condition in itself is also an expression, they may be nested.
+
+COMMANDS
+
+log [level] -> <message>
+	Logs a message to the console
+
+set <name> -> <value>
+	Set the value of a name to the specified value. If <name> doesn't exist in the current namespace it will be created.
+	IMPORTANT: If value is an expression, it is not evaluated when this command is executed. Imagine CIDSL binding the LITERAL EXPRESSION (yeah, that's a term you'll never hear in a computer science class
+	ever) to the name.
+
+on <condition> -> [play | react] <response>
+	Respond to a specific message. This command will register a handler for the specified condition and execute the response body if said condition evaluates to True.
+	If the response is prefixed with the word "play", response should point to an audio file, which will be played in the channel the bot is currently in on this server.
+	If the bot currently isn't in a voice channel, this command is a noop.
+	If the response is prefixed with the word "react", response should be either a Unicode emoji or a custom discord emoji.
+	The bot will react to the message with the specified emoji as a reaction.
+	For custome emojis, response should be somthing like <emojiName>:<emojiID> (without brackets).
+
+load <name> -> <string: path>
+	Load a textfile located at path. The files contents will be read and the lines will be accessible under the specified name. Upon referencing the name bound to the file, a random line will be
+	returned.
+	WARNING: This command is executed at script loading time, as such there will only be limited dynamic value resolution support. All referenced names must already be defined in the current
+	namespace.

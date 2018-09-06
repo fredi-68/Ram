@@ -1,0 +1,282 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>c57e8d54-5b6a-47a2-85e5-9c8426797bdc</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>ProtOS_Bot.py</StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>ProtOS Bot</Name>
+    <RootNamespace>ProtOS Bot</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="audio.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="brianCS\model.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="chatbot.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="chatutils.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="cmdsys.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="cmdutils.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\addRole.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\assertCmd.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\avatar.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\block.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\buns.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\channelBan.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\channelLogs.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\channelPin.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\culture.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\eightball.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\hmmCmd.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\listmusic.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\lucio.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\markdown.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\meme.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\moveall.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\myPrivilege.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\name.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\nick.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\pauseSound.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\permGet.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\pinCount.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\ping.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\playMusic.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\playSystemSound.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\playVoiceline.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\post.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\presence.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\purge.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\queue.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\random.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\roleTimeout.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\setAIState.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\setVolume.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\skipSound.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\slay.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\spawn.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\stay.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\testEmbed.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\testImagelib.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\timeout.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\twitchCmd.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\unblock.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\weeb.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\wuvme.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="config.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DeactivatedCmds\pizza.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="fixLogging.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="gassist.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="imagelib.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="interaction.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ProtOS_Bot.py" />
+    <Compile Include="RAT\main.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="RAT\network.py" />
+    <Compile Include="RAT\perm.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="twitch.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="version.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="voicecom.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ytsearch.py">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="chat\" />
+    <Folder Include="chat\memes\" />
+    <Folder Include="chat\memes\genTemplates\" />
+    <Folder Include="chat\quotes\" />
+    <Folder Include="chat\responses\" />
+    <Folder Include="chat\scripts\" />
+    <Folder Include="config\" />
+    <Folder Include="commands\" />
+    <Folder Include="DeactivatedCmds\" />
+    <Folder Include="brianCS\" />
+    <Folder Include="RAT\" />
+    <Folder Include="RAT\config\" />
+    <Folder Include="RAT\Credentials\" />
+    <Folder Include="RAT\logs\" />
+    <Folder Include="RAT\Security\" />
+    <Folder Include="RAT\Patch\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="chat\memes\genTemplates\dio.png" />
+    <Content Include="chat\memes\genTemplates\justkidding.png" />
+    <Content Include="chat\memes\genTemplates\rufcknsrs.png" />
+    <Content Include="chat\quotes\aidan.txt" />
+    <Content Include="chat\quotes\brizzle.txt" />
+    <Content Include="chat\quotes\cian.txt" />
+    <Content Include="chat\quotes\crashdown.txt" />
+    <Content Include="chat\quotes\cubox.txt" />
+    <Content Include="chat\quotes\curt.txt" />
+    <Content Include="chat\quotes\fredi_68.txt" />
+    <Content Include="chat\quotes\jeff.txt" />
+    <Content Include="chat\quotes\kungpoh.txt" />
+    <Content Include="chat\quotes\lardy.txt" />
+    <Content Include="chat\quotes\owl.txt" />
+    <Content Include="chat\quotes\py.txt" />
+    <Content Include="chat\quotes\ram.txt" />
+    <Content Include="chat\quotes\simba.txt" />
+    <Content Include="chat\quotes\tariska.txt" />
+    <Content Include="chat\quotes\todo.txt" />
+    <Content Include="chat\responses\agree.txt" />
+    <Content Include="chat\responses\confirm.txt" />
+    <Content Include="chat\responses\confused.txt" />
+    <Content Include="chat\responses\denied.txt" />
+    <Content Include="chat\responses\disagree.txt" />
+    <Content Include="chat\responses\goodnight.txt" />
+    <Content Include="chat\responses\greet.txt" />
+    <Content Include="chat\responses\mentioned.txt" />
+    <Content Include="chat\scripts\default.ci" />
+    <Content Include="chat\scripts\hairbuns.ci" />
+    <Content Include="chat\scripts\Interaction DSL.txt" />
+    <Content Include="config\bot.xml" />
+    <Content Include="RAT\config\config.xml" />
+    <Content Include="RAT\NOINDEX.INF" />
+  </ItemGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>
