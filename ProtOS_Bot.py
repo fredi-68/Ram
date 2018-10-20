@@ -28,7 +28,6 @@ import importlib.util
 import discord
 
 HAS_YTDL = True
-HAS_GASSIST = True
 try:
     import youtube_dl #Try to import youtube_dl, this is an optional package used to play YouTube videos using the play command
 except ImportError:
@@ -48,11 +47,7 @@ import config
 import chatutils
 import interaction
 import audio
-
-try: #GAssist package is optional
-    import gassist #urgh...
-except ImportError:
-    HAS_GASSIST = False
+import conversation
 
 from cmdsys import *
 
@@ -211,40 +206,6 @@ def getPin(cmd, msg):
     if image: e.set_image(url=image)
 
     return e
-
-def prepareMessageAI(msg):
-
-    """
-    Prepares a chat message for export to the AI process via local IPv4 loopback
-    """
-
-    s = msg.content.replace("<@" + client.user.id + ">", "") #make sure the bot mention doesn't show up if it was input
-    s = s.replace("<@!" + client.user.id + ">", "") #secondary mention format
-    s = s.lstrip(" ,") #Do this last so there aren't any unnecessary spaces left
-
-    #command blacklisting
-    cmds = [
-        "QUIT",
-        "EXIT",
-        "SAVE",
-        "SPEECH",
-        "DELAY",
-        "VOICES",
-        "VOICE",
-        "BRAIN",
-        "HELP"
-        ]
-    for i in cmds:
-        s = s.replace("#" + i, "")
-
-    while s.find("\n\n") >= 0:
-        s = s.replace("\n\n", "\n") #Injection protection. Not an ACE or anything but it was causing trouble with linefeeds and also allowed users to insert AI commands directly into the subprocess by using modified messages.
-            
-    if not s: #we deleted everything... WELL
-        return None
-    if not (s[-1] in ["?", "!", "."]): #this checks if the sentence was properly terminated
-        s += "." #add a period to tell the AI that the sentence ends here, otherwise it will fuck up mentions and emotes
-    return s.encode() #prepare message for network transfer
 
 def changeRecordingState(ch):
 
@@ -456,15 +417,20 @@ class ResponseManager():
         Emulates a Discord embed using a text only interface.
         """
 
+        title = str(embed.title)
+        desc = str(embed.description)
+        footer = str(embed.footer.text)
+        author = str(embed.author.name)
+
         self.rpc_messages.append("Rich Embed:\n"+"="*60+"\n")
-        self.rpc_messages.append(embed.title+" | "+embed.description+"\n")
+        self.rpc_messages.append("%s | %s\n" % (title, desc))
         for i in embed.fields:
             self.rpc_messages.append("\n"+i.name)
             self.rpc_messages.append("\n"+"-"*40)
             self.rpc_messages.append("\n"+i.value+"\n")
 
         if embed.footer != embed.Empty:
-            self.rpc_messages.append("\n"+embed.footer.text+" | "+embed.author.name)
+            self.rpc_messages.append("\n%s | %s" % (footer, author))
 
     async def _ChatCreateEmbed(self, embed):
 
@@ -849,7 +815,7 @@ class CmdStats(Command):
             "UID: %s    " % client.user.id,
             "Version: %s    " % version.S_VERSION,
             "Shard: %i/%i    " % ((client.shard_id if client.shard_id else 0)+1, (client.shard_count if client.shard_count else 1)),
-            "AI Backend: %s" % ("Google Assistant API" if USE_GASSIST else "MegaHAL"),
+            "AI Backend: %s" % (CONVERSATION_SIMULATOR.name),
             "Music Backend: %s" % ("youtube_dl" if HAS_YTDL else "Unavailable"),
             "Image Processing Backend: %s" % ("imagelib" if has_imglib else "Unavailable")
             )
@@ -907,15 +873,19 @@ for i in os.listdir("commands"):
     logger.debug("Loading command extension file %s..." % i)
     stuff = dir(module)
     for thing in stuff: #proper terminology is important
-        if issubclass(thing, Command):
-            #looks like a command
-            try:
-                cmd = thing()
-            except:
-                logger.warn("Initializing command extension failed (source: %s): " % i)
-                continue
-            logger.debug("Registering command extension %s..." % cmd.name)
-            COMMANDS.append(cmd)
+        try:
+            thing = getattr(module, thing)
+            if issubclass(thing, Command) and not thing == Command:
+                #looks like a command
+                try:
+                    cmd = thing()
+                except BaseException as e:
+                    logger.warn("Initializing command extension failed (source: %s): %s" % (i, str(e)))
+                    continue
+                logger.debug("Registering command extension %s..." % cmd.name)
+                COMMANDS.append(cmd)
+        except TypeError:
+            pass
 logger.info("Done!\n")
 
 logger.info(str(len(COMMANDS))+" command(s) loaded:")
@@ -952,25 +922,21 @@ ICONS = { #Discord chat icons
 #PROGRAM FLAGS (THESE CAN BE EDITED)
 DEBUG_CONSOLES = True #will force additional terminals to spawn for debug purposes. Should be disabled on release versions. Slightly buggy atm, recommended to be left on
 NICKNAME_LOCKED = True #While this is true, any attempts to change the bots nickname will result in it being automatically changed back.
-USE_GASSIST = False #Set this to True to use Google Assistant as a conversation simulator instead of MegaHAL
 USE_VOICECOM = False #Set this to True to use voice receiving hooks.
 
 #STATE VARIALBES (DON'T EDIT THESE)
 NICKNAME_REVERTED = False #Indicates that the bot changed its nickname back and expects the resulting event to be dispached shortly
 AUTOSAVE_ACTIVE = False #Indicates if an autosave subroutine is currently running. Used to prevent autosave from triggering more than once per session
 
-USE_GASSIST = USE_GASSIST if HAS_GASSIST else False #Set gassist flag to false if gassist module is unavailable
-
 #addresses for networking
 
 host = CONFIG_MANAGER.getElementText("bot.network.host.IP", "localhost") #address of this machine (usually localhost, unless you want to access the bot from a different computer)
-AIAddress = CONFIG_MANAGER.getElementText("bot.network.AI.IP", "localhost") #address of the machine running the AI process (usually the same as host, unless AI is running on a different computer)
 controlPort = CONFIG_MANAGER.getElementInt("bot.network.host.controlPort", 50010) #port to listen on for remote control interface
-AIPort = CONFIG_MANAGER.getElementInt("bot.network.AI.port", 50011) #port to connect to AI
-
-GASSIST = gassist.GoogleAssistant(CONFIG_MANAGER) if USE_GASSIST else None
 
 client = discord.Client()
+
+#CONVERSATION_SIMULATOR = conversation.MegaHAL(client, CONFIG_MANAGER)
+CONVERSATION_SIMULATOR = conversation.BrianCS(client, CONFIG_MANAGER)
 
 #New audio engine
 AUDIO_MANAGER = audio.AudioManager(client)
@@ -1058,43 +1024,6 @@ async def sendCommandReply(cmd, reply, notify=False):
     else:
         #we just print whatever we have on screen
         logging.getLogger("Console").info(reply)
-
-async def AICommunicate(msg, wait=True):
-
-    """
-    Helper function for communicating with the AI
-    """
-
-    logger = logging.getLogger("AI")
-
-    try:
-        reader, writer = await asyncio.open_connection(AIAddress, AIPort, loop=client.loop) #open connection to the AI
-    except:
-        logger.exception("Error while trying to connect to AI server: ")
-        return "Error: Connection to AI server could not be established."
-    
-    try:
-        writer.write(msg)
-        if writer.can_write_eof():
-            writer.write_eof()
-    except:
-        logger.exception("An error occured while communicating with AI process: ")
-        return "Error: Communication with host process failed."
-
-    if wait:
-        try:
-            result = await reader.read(-1)
-            writer.close()
-        except:
-            logger.exception("An error occured while retrieving the result: ")
-            return "Error: No response from host process."
-        return result.decode()
-    
-    try:
-        writer.close()
-    except:
-        pass
-    return None
 
 async def process_command(responseHandle):
 
@@ -1456,9 +1385,8 @@ async def save():
     The bot will run this method automatically every 5 minutes.
     """
 
-    #saves MEGAHAL state
-    await AICommunicate(b"#SAVE")
-    logging.getLogger("MegaHAL").info("Brain Saved!")
+    #saves CS state
+    await CONVERSATION_SIMULATOR.setOpt("SAVE", None)
 
     #save config (Do this last so save functions of other subsystems can refresh their config information first)
     CONFIG_MANAGER.save()
@@ -1638,18 +1566,7 @@ async def on_message(msg):
                     return
 
 
-            aistr = prepareMessageAI(msg)
-            if not aistr:
-                await client.send_message(msg.channel, msg.author.mention + ", " + interaction.mentioned.getRandom())
-                return
-
-            #Changed a bunch of stuff to make this work with the Google Asisstant API
-            #Not sure if I'll keep it so I'll leave the old code commented out for now
-
-            if USE_GASSIST and GASSIST:
-                response = GASSIST.getTextResponse(aistr.decode())
-            else:
-                response = await AICommunicate(aistr) #Send message to AI and get response
+            response = await CONVERSATION_SIMULATOR.respond(msg)
 
             if CONFIG_MANAGER.getElementText("bot.chat.aistate") == "passive": #AI in passive mode
                 return
@@ -1705,12 +1622,7 @@ async def on_message(msg):
                     if ds.exists(): #YOU'RE BANNED
                         return
 
-                aistr = prepareMessageAI(msg)
-                if not aistr:
-                    return
-
-                if not USE_GASSIST:
-                    await AICommunicate(aistr) #send the text to the AI
+                await CONVERSATION_SIMULATOR.observe(msg)
 
             c = msg.content.lower()
             if " ram " in c or c.startswith("ram ") or c.endswith(" ram") or c == "ram": #Make the bot sometimes respond to its name when it comes up

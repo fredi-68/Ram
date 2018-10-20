@@ -49,7 +49,7 @@ except ImportError:
     logger.error("Failed to load PyNaCl: Module could not be imported.")
     HAS_VOICE_REQ = False
 except:
-    logger.error("Failed to load PyNaCl: And error occured while importing the module.")
+    logger.error("Failed to load PyNaCl: An error occured while importing the module.")
     HAS_VOICE_REQ = False
 
 if not discord.opus.is_loaded():

@@ -25,7 +25,7 @@ left to right, with the first token being the command and the last the action. I
 the parser moves onto the next line.
 A command may span across multiple lines if the newlines are escaped using the % character or a newline occurs as part of a string.
 
-Comments may be added by putting the sequence "//" in front of a sequence of characters. Everything behind this sequence will be ignored by the parser.
+Comments may be added by putting the sequence "//" in front of a sequence of characters. Everything behind this sequence will be ignored by the parser, until a linebreak occurs.
 
 NAMES
 

@@ -789,7 +789,7 @@ class DSLInterpreter():
             if len(args) > 1:
                 raise DSLError("Command 'log' takes no arguments but %i were given" % len(args))
             if len(action) != 1:
-                raise DSLError("Wrong amount of actions for command 'set': Expected 1 but was %i" % len(action))
+                raise DSLError("Wrong amount of actions for command 'log': Expected 1 but was %i" % len(action))
 
             level = logging.DEBUG
             if args:
@@ -801,9 +801,9 @@ class DSLInterpreter():
         elif commandName.name == "on":
 
             if len(args) != 1:
-                raise DSLError("Wrong amount of arguments for command 'set': Expected 1 but was %i" % len(args))
+                raise DSLError("Wrong amount of arguments for command 'on': Expected 1 but was %i" % len(args))
             if len(action) < 1:
-                raise DSLError("Not enough actions for command 'set': Expected at least 1 but was %i" % len(action))
+                raise DSLError("Not enough actions for command 'on': Expected at least 1 but was %i" % len(action))
             elif len(action) == 2:
 
                 if isinstance(action[0], TName):
@@ -826,7 +826,7 @@ class DSLInterpreter():
                         raise DSLError("Wrong value for first action, must be 'play'")
 
             elif len(action) > 2:
-                raise DSLError("Too many actions for command set: Expected at most 2 but was %i" % len(action))
+                raise DSLError("Too many actions for command on: Expected at most 2 but was %i" % len(action))
 
             #Path for normal text responses
             self.logger.debug("Registering responder...")

@@ -6,3 +6,6 @@ stuff
 config
 ProtOS Bot.pyproj
 TODO.txt
+commit.BAT
+.git
+.gitignore
