@@ -349,16 +349,20 @@ class Image(io.RawIOBase):
             font = pygame.font.Font(fontPath, size)
             words = text.split(" ")
             lines = []
+            spaceWidth = font.size(" ")[0]
             totalHeight = 0
             while len(words) > 0:
                 line = words.pop(0)
+                lineWidth = 0
                 while len(words) > 0:
             
-                    sizes = font.size(line + " " + words[0])
-                    if sizes[0] > box.width:
+                    sizes = font.size(words[0])
+                    #calculate new width of line by taking the accumulative line width plus the width of the current word and a separating space.
+                    if lineWidth + spaceWidth + sizes[0] > box.width:
                         break
 
                     line += " " + words.pop(0)
+                    lineWidth += spaceWidth + sizes[0]
                 totalHeight += size
                 #totalHeight += font.size(line)[1]
 
