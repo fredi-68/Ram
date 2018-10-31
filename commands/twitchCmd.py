@@ -17,7 +17,7 @@ class MyCommand(Command):
 
         if not self._twitchClient:
             self._twitchClient = twitch.TwitchClient(self.config) #cache our client so we don't have to authenticate every time we access the twitch API
-        game = twitch.getChannelGame(channel, self._twitchClient) #Uses our twitch integration to figure out the game that is being played
+        game = self._twitchClient.getChannelGame(channel) #Uses our twitch integration to figure out the game that is being played
         if game:
             await self.client.send_message(self.msg.channel, self.msg.author.mention+" is streaming **"+game+"** at https://www.twitch.tv/"+channel) #guessing the channel link usually works pretty well
         else: #This should never happen now that we are checking the channel page instead of the stream. If it does, the error is in Twitches API so our error message is not helpful anyway.

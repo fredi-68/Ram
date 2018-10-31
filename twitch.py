@@ -41,45 +41,6 @@ def getJSONRequest(res):
 
     return json.loads(res.read().decode("ASCII", "ignore"))
 
-def getTwitchRequest(url, client):
-
-    """
-    Requests the ressource at the given location, providing authentication information from the client
-    """
-
-    headers = {"Accept":"application/vnd.twitchtv.v5+json"} #Use Twitch API v5
-    if isinstance(client,TwitchClient):
-
-        #Set token if we are logged in and client ID if we are not
-
-        if client.token:
-            headers["Authorization"] = "OAuth "+client.token
-        elif client.id:
-            headers["Client-ID"] = client.id
-        else:
-            return {} #twitch client wasn't initialized properly, send an empty dictionary
-    else:
-        raise ValueError("client must be of type TwitchClient")
-    return getJSONRequest(request.urlopen(request.Request(url, headers=headers)))
-
-def getUserID(user,client):
-
-    """
-    Returns the user ID for the given username
-    """
-
-    res = getTwitchRequest("https://api.twitch.tv/kraken/users?login="+user, client)
-    return res["users"][0]["_id"]
-
-def getChannelGame(channel,client):
-
-    """
-    Returns the game played on the given channel at the moment
-    """
-
-    res = getTwitchRequest("https://api.twitch.tv/kraken/channels/"+getUserID(channel, client), client)
-    return res["game"]
-
 class OAuthServer(server.HTTPServer):
 
     def __init__(self, address, callback):
@@ -182,7 +143,7 @@ class TwitchClient():
 
         #validate token
         try:
-            res = getTwitchRequest("https://api.twitch.tv/kraken", self)
+            res = self.getTwitchRequest("https://api.twitch.tv/kraken", self)
             self.ready = True #if successful, set ready flag
         except request.HTTPError:
             logger.warning("Twitch access token verification failed, requesting a new one...")
@@ -258,3 +219,40 @@ class TwitchClient():
         self.config.setElementText("twitch.clientSecret", self.secret)
         self.config.setElementText("twitch.token", self.token)
         self.config.save()
+
+    def getTwitchRequest(self, url):
+
+        """
+        Requests the ressource at the given location, providing authentication information from the client
+        """
+
+        headers = {"Accept": "application/vnd.twitchtv.v5+json"} #Use Twitch API v5
+
+        #Set token if we are logged in and client ID if we are not
+
+        if self.token:
+            headers["Authorization"] = "OAuth "+self.token
+        elif self.id:
+            headers["Client-ID"] = self.id
+        else:
+            return {} #twitch client wasn't initialized properly, send an empty dictionary
+
+        return getJSONRequest(request.urlopen(request.Request(url, headers=headers)))
+
+    def getUserID(self, user):
+
+        """
+        Returns the user ID for the given username
+        """
+
+        res = self.getTwitchRequest("https://api.twitch.tv/kraken/users?login="+user)
+        return res["users"][0]["_id"]
+
+    def getChannelGame(self, channel):
+
+        """
+        Returns the game played on the given channel at the moment
+        """
+
+        res = self.getTwitchRequest("https://api.twitch.tv/kraken/channels/"+self.getUserID(channel))
+        return res["game"]
