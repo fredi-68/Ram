@@ -19,7 +19,7 @@ With version 2.0, the Unified Command System was introduced. This system had two
 
 	- Provide ONE INTERFACE for both console and chat commands
 
-This new interface worked great and commands could now be written using a simple object oriented development process which sped up production incredibly. However, there was still a problem: All commands were still located in the main file of the program, thus making said file incredibly hard to read or traverse. The obvious solution was to move every command to its own file, thus stripping the main file of about a third of its code. But a lot of the commands used references to objects in the main program. Dynamically adding all of those references to the command would be incredibly time consuming to do and it would also pose certain risks. Thus the command system was again separated. This time however, in INTERNAL and EXTERNAL commands.
+This new interface worked great and commands could now be written using a simple object oriented development process which sped up production incredibly. However, there was still a problem: All commands were still located in the main file of the program, thus making said file incredibly hard to read or traverse. The obvious solution was to move every command to its own file, thus stripping the main file of about a third of its code. But a lot of the commands used references to objects in the global namespace. Dynamically adding all of those references to the command would be incredibly time consuming to do and it would also pose certain risks. Thus the command system was again separated. This time however, in INTERNAL and EXTERNAL commands.
 
 	- INTERNAL commands are commands that rely very heavily on system internal functionality that can't be easily replaced.
 	  These commands are hardcoded into the main program, thus having access to its global scope of variables and modules.
@@ -45,8 +45,7 @@ everything is always written to the log file.
 
 To get error logs and tracebacks delivered straight through Discord, you can enable command debugging in the bot config by setting the text of the config/bot/debug/showCommandErrors tag to 1.
 Since this is a nonstandard configuration entry you may have to create the tag first.
-Any time a command fails to execute properly, you will receive a message with a traceback. This can help immensly, since the console log can advance very fast, especially in debug mode and error messages
-or tracebacks can be hard to read in time.
+Now any time a command fails to execute properly, you will receive a message with a traceback. This can help immensely, since the console log can advance very fast, especially in debug mode and error messages or tracebacks can be hard to read in time.
 
 You will also want to familiarize yourself with the discord.py API, since a lot of the datatypes cmdsys uses are part of the library. There are also some things cmdsys cannot do, in which case
 discord.py usually has your back. The client instance is exposed through an attribute as well as the original message. More on this later.
@@ -98,7 +97,7 @@ To do this, we override the method Command.setup:
 
 As you can see, we have supplied the command system with some additional information about our command. Let's walk you through the different attributes showcased here:
 
-	name-		obvious naming is obvious: This attribute sets the name of the command. And not some internal name at
+	name -		obvious naming is obvious: This attribute sets the name of the command. And not some internal name at
  			that. This is the default name used to refer to the command in the command interface. This means, you 
 			can invoke this command by typing +[name] in chat or [name] on console, with [name] being the name 
 			field we just defined.
@@ -185,7 +184,8 @@ So the code for our example command could look like this:
 			for member in tuple(self.msg.server.members):
 				await self.respond(member.name)
 
-It is worth noting that this would be an incredibly inefficient use of our I/O ressources. Every time the Command.respond() method is called, the message is sent to Discord via Client.send_messag() IMMEDIATELY WITHOUT BUFFERING. This means for a long list like this, you will be sending potentially hundreds of messages... and there is not doubt that Discord won't like that very much. A smarter idea would be to buffer our responses. Incidentally, the respond() method takes an additional optional parameter called flush_chat, which is True by default. By setting this to False, we can tell the ResponseManager to buffer our messages until we call respond() with flush_chat=True, or call Command.flush() respectively.
+It is worth noting that this would be an incredibly inefficient use of our I/O ressources. Every time the Command.respond() method is called, the message is sent to Discord via Client.send_message() IMMEDIATELY WITHOUT BUFFERING. This means for a long list like this, you will be sending potentially hundreds of messages... and there is not doubt that Discord won't like that very much. A smarter idea would be to buffer our responses. Incidentally, the respond() method takes an additional optional parameter called flush_chat, which is True by default. By setting this to False, we can tell the ResponseManager to buffer our messages until we call respond() with flush_chat=True, or call Command.flush() respectively.
+The message buffering system is even smart enough to automatically handle character limits for you. If you try to send a message longer than 2000 characters, the ResponseManager will try to break that message up into smaller pieces, as long as it can find a place to do so. Breakpoints for messages include newlines and new messages.
 The ResponseManager will automatically flush our message buffer if we forget to do so, however, WHEN this is going to happen is up to garbage collection, so it is best to always call flush() at the end of your command if you use manual message buffering.
 
 So now we've discussed all major parts of our command system: Input, output and retrieving context information...
@@ -241,7 +241,7 @@ Arguments are parsed, checked and converted automatically. There is, however, so
 	- As of version 3.5, whitespaces in arguments can now be escaped by quoting the argument string (e.g.: "Hello World" will result in one argument with the value Hello World, regardless of position).
 	This is made possible through the use of some fancy RE pattern matching, but you don't need to worry about that. However, this means that you cannot use quotes as part of input data in
 	arguments anymore, since the parser will automatically match them to be the start of a compound argument. Even worse, if you miss the second quotation mark, some unexpected behaviour may
-	occur. To address this issue, I plan to introduce a way to ESCAPE THE ESCAPE CHARACTER AS WELL. This will make the related code approximately about 5 times more complicated.
+	occur. To address this issue, I plan to introduce a way to ESCAPE THE ESCAPE CHARACTER AS WELL. This will make the related code approximately 5 times more complicated.
 
 	- As of CPython 3.6, the default dict implementation preserves argument passing order in keyword argument dicts. This means that kwargs will have all arguments in the same order they were
 	defined in inside the setup() method. HOWEVER, one should not rely on this feature since the underlying implementation may change or be completely different on Python environments other

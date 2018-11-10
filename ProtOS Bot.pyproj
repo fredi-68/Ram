@@ -106,6 +106,9 @@
     <Compile Include="commands\permGet.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="commands\pin.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="commands\pinCount.py">
       <SubType>Code</SubType>
     </Compile>

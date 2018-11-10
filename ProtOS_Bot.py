@@ -178,34 +178,8 @@ def logMessage(msg):
         logger.info("[DM][%s](%s): %s" % (name, a, s))
         return
 
-    color = msg.author.colour.to_tuple() if hasattr(msg.author, "colour") else (0,0,0)
+    color = msg.author.colour.to_tuple() if hasattr(msg.author, "colour") else (0, 0, 0)
     logger.info("[%s][%s](%s): %s" % (msg.server.name, msg.channel.name, cmdutils.colorText(a, color), s))
-
-def getPin(cmd, msg):
-
-    """
-    Pretty printer for bot pins.
-    Shows various stats and also makes sure attachments are handled properly
-    """
-
-    title = "Pinned Message "+ICONS["pin"] #Embed title #TODO: Work out how those fancy fields work an use those instead of our clunky implementation.
-
-    desc = "MESSAGE PINNED BY "+chatutils.mdBold(cmd.author.name)+" AT "+chatutils.mdBold(cmd.timestamp.strftime("%c"))+\
-    ":\n-------------------------------------\nORIGINAL MESSAGE BY "+chatutils.mdBold(msg.author.name)+" IN "+\
-    chatutils.mdBold(msg.channel.name)+" AT "+chatutils.mdBold(msg.timestamp.strftime("%c"))+"\n\n"
-    
-    desc += msg.content+"\n" #pinned message
-    image = None
-    for i in msg.attachments: #process file attachments (currently adding them as links) TODO: Make this dynamically add images and videos to the respective Embed fields
-        for j in ["png","jpg","jpeg","gif"]: #there HAS to be a better way to do this... *sigh*
-            if i["url"].endswith("."+j):
-                image = i["url"]
-        desc += "\n"+str(i["url"])
-
-    e = discord.Embed(title=title,description=desc,color=discord.Color.magenta()) #make pins show up as Embeds
-    if image: e.set_image(url=image)
-
-    return e
 
 def changeRecordingState(ch):
 
@@ -469,7 +443,7 @@ class ResponseManager():
 
         if self.is_rpc():
             #write response
-            lines = map(str.encode,self.rpc_messages) #encode to bytes
+            lines = map(str.encode, self.rpc_messages) #encode to bytes
             returnString = b" ".join(lines)
             if not returnString:
                 returnString = b"Internal error: No response."
@@ -668,31 +642,6 @@ class CmdLeave(Command):
 
 COMMANDS.append(CmdLeave())
 
-class CmdPin(Command):
-
-    def setup(self):
-
-        self.name = "pin"
-        self.desc = "'Pins' a message to a channel by copying it to a predefined pin channel."
-        self.permissions.administrator = True
-        self.addArgument(Argument("message", CmdTypes.MESSAGE))
-        self.allowConsole = False
-
-    async def call(self, message, **kwargs):
-
-        db = self.db.getDatabaseByMessage(self.msg)
-        dsList = db.enumerateDatasets("pinChannels")
-
-        if len(dsList) < 1: #we don't have any pin channels for this server
-            await self.respond("Pins are not setup for this server.", True)
-            return
-
-        for i in dsList:
-            dch = self.msg.server.get_channel(i.getValue("channelID"))
-            await self.client.send_message(dch, None, embed = getPin(self.msg, message))
-
-COMMANDS.append(CmdPin())
-
 class CmdQuote(Command):
 
     def setup(self):
@@ -851,6 +800,87 @@ class CmdVersion(Command):
     async def call(self, **kwargs):
 
         await self.respond(version.S_TITLE_VERSION)
+
+COMMANDS.append(CmdVersion())
+
+class CmdCSOpt(Command):
+
+    def setup(self):
+
+        self.name = "csopt"
+        self.aliases.append("csoption")
+        self.aliases.append("csoptions")
+        self.aliases.append("cso")
+
+        self.desc = "Interface with the conversation simulator.\n\nArgument 'action' should be either 'get' or 'set'"
+
+        self.addArgument(Argument("action", CmdTypes.STR))
+        self.addArgument(Argument("option", CmdTypes.STR))
+        
+        self.ownerOnly = True
+
+    async def call(self, action, option):
+
+        action = action.lower()
+        if action == "get":
+            self.logger.debug("Getting CS option '%s'..." % option)
+            try:
+                res = str(await CONVERSATION_SIMULATOR.getOpt(option))
+            except ValueError:
+                await self.respond("This option is not supported by this implementation.", True)
+                return
+            await self.respond("Value of '%s': '%s'" % (option, res))
+
+        elif action == "set":
+            self.logger.debug("Getting CS option '%s'..." % option)
+            try:
+                await CONVERSATION_SIMULATOR.setOpt(option)
+            except ValueError:
+                await self.respond("This option is not supported by this implementation.", True)
+                return
+
+        else:
+            await self.respond("Action must be either 'get' or 'set'.", True)
+
+COMMANDS.append(CmdCSOpt())
+
+class CmdSudo(Command):
+
+    def setup(self):
+
+        self.name = "sudo"
+        self.desc = "Gain superuser privileges.\n\nThis command allows you to execute other commands from the console (i.e.: with root access) from anywhere."
+        self.hidden = True
+        self.ownerOnly = True #only the bot owner should ever be able to gain root access
+        self.allowConsole = False #having access to this on the console wouldn't make much sense
+        self.addArgument(Argument("cmd", CmdTypes.STR))
+        self._cmd = ""
+
+    async def call(self, cmd):
+
+        self._cmd = cmd.encode()
+        responseHandle = ResponseManager(reader=self, writer=self)
+        await process_command(responseHandle)
+
+    #Standard bytestream interface methods go here
+
+    async def readline(self):
+
+        return self._cmd
+
+    async def read(self):
+
+        return self._cmd
+
+    def write(self, msg):
+
+        asyncio.get_event_loop().create_task(self.respond(msg.decode(), True))
+
+    def close(self):
+
+        pass
+
+COMMANDS.append(CmdSudo())
 
 internal_commands = len(COMMANDS)
 
