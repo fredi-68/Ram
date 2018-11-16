@@ -23,6 +23,8 @@ import functools
 import json
 import importlib
 import importlib.util
+import ctypes
+import ctypes.util
 
 #Third party
 import discord
@@ -119,11 +121,28 @@ DATABASE_MANAGER = config.DatabaseManager()
 if not CONFIG_MANAGER.getElementText("bot.owner", ""): #Let the user know if he forgot to set bot ownership, since this can be quite the severe issue if the bot isn't running a console of any kind
     logging.getLogger("Config").warn("Bot ownership not set! Please review your configuration files!")
 
-logging.getLogger("Discord").info("Loading Opus...")
-defaultLibPath = "32"
-if platform.architecture()[0] == "64bit": #we've got a 64bit system; since discord.py is very picky about the location and the name of the opus library, change the default to make sure users without a config don't run into problems (at least on windows this should work)
-    defaultLibPath = "64"
-discord.opus.load_opus(CONFIG_MANAGER.getElementText("bot.opus.path", "bin/opus/opus" + defaultLibPath))
+#OPUS library loading
+
+#[WIN]
+#we've got a 64bit system; since discord.py is very picky about the location and the name of the opus library,
+#change the default to make sure users without a config don't run into problems
+
+#[LINUX/UNIX]
+#we use the library finder to locate the shared library, if no explicit name was specified in the config file.
+#If the loader can't find the library, default back to the standard windows path.
+logger = logging.getLogger("Discord")
+logger.info("Loading Opus...")
+libArch = 32
+if platform.architecture()[0] == "64bit": 
+    libArch = 64
+opusPath = CONFIG_MANAGER.getElementText("bot.opus.path", "")
+if not opusPath:
+    logger.debug("Missing OPUS shared library path in config file, trying to automatically locate library...")
+    opusPath = ctypes.util.find_library("opus")
+    if not opusPath:
+        logger.debug("Unable to locate OPUS library, trying default location...")
+        opusPath = "bin/opus/opus%i" % libArch
+discord.opus.load_opus(opusPath)
 
 #Post init module import
 
@@ -521,13 +540,13 @@ class FileRecorder():
 
         await self._configureFile()
         self._recording = True
-        self.logger.info("Recording audio from channel "+self.channel.name)
+        self.logger.info("Recording audio from channel " + self.channel.name)
         while self._recording:
 
             try:
                 data = await self.listener.getAudio(self.channel, self.bufferSize)
                 if data:
-                    self.logger.debug("Got audio data: "+str(len(data))+" byte(s) recorded.")
+                    self.logger.debug("Got audio data: " + str(len(data)) + " byte(s) recorded.")
                     self.file.writeframes(data)
             except ValueError:
                 self.logger.error("Channel not found, stopping recording")

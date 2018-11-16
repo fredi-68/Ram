@@ -72,7 +72,7 @@ async def cleanUp():
 
 class Argument():
 
-    def __init__(self, name, type=CMD_TYPE_INT, optional=False,default=None):
+    def __init__(self, name, type=CMD_TYPE_INT, optional=False, default=None):
 
         """
         Creates a new argument descriptor with a name and an associated type.
