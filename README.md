@@ -18,7 +18,7 @@ I like the GitHub interface so that's why this is on here. OMG VS, STOP PUTTING 
 
 Also testing some stuff since I have another project that may go open source at some point. So far I am disappointed.
 
-#Installation
+# Installation
 I have no idea, just go ahead and try. I use a different version of the program that has some additional modules and other files and never tested
 if the repo actually works on its own. If it boots for you, great. If it doesn't, open an issue and I'll see if I can get around to actually testing
 this crap.
@@ -58,5 +58,5 @@ Your user account ID should be added under the bot.owner tag; it can be obtained
 [TODO: Write more information about configuring search engine tokens / twitch integration here]
 [ALSO TODO: Make a wiki or something because this is getting quite long]
 
-#Contributing
+# Contributing
 fix my markdown pls
