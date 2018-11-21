@@ -43,7 +43,21 @@ class MyCommand(Command):
     def setup(self):
 
         self.name = "play"
-        self.desc = "Play music from the local library or online streaming services.\n Use +tracks to display a list of all locally available sound files."
+
+        self._descLines = [
+            "Play music from the local library or online streaming services.",
+            "Use +tracks to display a list of all locally available sound files.",
+            "",
+            "This command features an integrated search engine for finding songs using a search query string. You can use this feature by prefixing your request with a keyword specifying the search engine you want to use.",
+            "These search engines keywords are currently recognized:",
+            "```",
+            "  youtube",
+            "  soundcloud",
+            "  search (use default, alias for 'youtube'",
+            "```"
+            ]
+
+        self.desc = "\n".join(self._descLines)
         self.addArgument(Argument("query", CmdTypes.STR))
         self.allowConsole = False
 
