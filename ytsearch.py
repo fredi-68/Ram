@@ -11,7 +11,13 @@ import logging
 import json
 from urllib import request
 
-import soundcloud
+logger = logging.getLogger("ytsearch")
+HAS_SOUNDCLOUD = True
+try:
+    import soundcloud
+except ImportError:
+    logger.warn("Unable to import soundcloud module, soundcloud search engine will not be available.")
+    HAS_SOUNDCLOUD = False
 
 import version
 
@@ -118,7 +124,10 @@ class SoundCloudSearch(Search):
         Search.__init__(self)
 
         self.token = token
-        self.client = soundcloud.Client(client_id=token)
+        if HAS_SOUNDCLOUD:
+            self.client = soundcloud.Client(client_id=token)
+        else:
+            self.client = None
         self.serviceName = "SoundCloud"
 
     def search(self, query, maxresults=10, lang='en', **opt):
@@ -138,6 +147,9 @@ class SoundCloudSearch(Search):
         Most of the parameters of this method are directly passed into the url
         """
         
+        if not HAS_SOUNDCLOUD:
+            return {"Library unavailable": "This search engine cannot function properly, because the soundcloud package isn't installed on this machine. Please contact the bot owner if you believe this is an error."}
+
         tracks = self.client.get("/tracks", q=query, limit=maxresults, **opt)
 
         urls = {}
