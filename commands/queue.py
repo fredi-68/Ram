@@ -1,5 +1,6 @@
 import discord
 from cmdsys import *
+from audio import AudioError
 
 class MyCommand(Command):
 
@@ -19,11 +20,27 @@ class MyCommand(Command):
                 return
             channel = self.msg.author.voice_channel
 
-        e = discord.Embed(title="Audio queue for channel %s" % channel.name, description="", color=discord.Color(0x6464FF))
-        
+        try:
+            playing = self.audioManager.getPlaying(channel)
+        except AudioError:
+            await self.respond("There is no audio being played on this channel.")
+            return
+        if len(playing) > 0:
+            e = discord.Embed(title="Now playing on channel '%s':" % channel.name, description="", color=discord.Color(0x6464FF))
+
+            for i in range(len(playing)):
+                sound = playing[i]
+                e.add_field(name="%i. %s - %s %s" % (i, sound.author, sound.title, ("[Paused]" if self.audioManager.isPaused(channel) else "")), value=sound.uri.split("?", 1)[0], inline=False)
+
+            await self.embed(e)
+
         queue = list(self.audioManager.getQueue(channel))
+        if len(queue) > 0:
+            e = discord.Embed(title="Audio queue for channel '%s'" % channel.name, description="", color=discord.Color(0x6464FF))
 
-        for i in range(len(queue)):
-            e.add_field(name="%i. %s - %s" % (i, queue[i].author, queue[i].title), value=queue[i].uri.split("?", 1)[0], inline=False)
+            for i in range(len(queue)):
+                e.add_field(name="%i. %s - %s" % (i, queue[i].author, queue[i].title), value=queue[i].uri.split("?", 1)[0], inline=False)
 
-        await self.embed(e)
+            await self.embed(e)
+        else:
+            await self.respond("The queue is empty.")

@@ -203,12 +203,28 @@ class FFMPEGSound(Sound):
     def stop(self):
 
         self.logger.debug("FFMPEG sound stopping...")
-        self.process.kill()
-        if self.process.poll() is None:
-            self.process.communicate()
+        if self.process != None:
+            #Sound still in queue
+            self.process.kill()
+            if self.process.poll() is None:
+                self.process.communicate()
 
         self.kill()
         self.logger.debug("FFMPEG sound stopped.")
+
+class YTDLSound(FFMPEGSound):
+
+    """
+    Class representing a resource from a music streaming service.
+
+    Uses youtube_dl to download/stream the track. The URI is validated on
+    instanciation, but the download URL is only fetched as soon as the sound
+    becomes ready to prevent playback token timeouts.
+
+    TODO: Implement
+    """
+
+    pass
 
 class ChannelStream():
 
@@ -339,6 +355,22 @@ class ChannelStream():
         """
 
         return list(self._queue)
+
+    def getPlaying(self):
+
+        """
+        Returns a copy of the internal list of currently active sounds.
+        """
+
+        return self._playing.copy()
+
+    def isPaused(self):
+
+        """
+        Check if this channel is paused.
+        """
+
+        return not self._player.is_playing()
 
     def hasAudio(self):
 
@@ -482,10 +514,32 @@ class AudioManager():
 
         """
         Returns the queue of the specified channel, as a list.
+
+        This does NOT include the currently playing sound(s), use
+        getPlaying() for that.
         """
 
         ch = self._getChannelByID(channel.id)
         return ch.getQueue()
+
+    def getPlaying(self, channel):
+
+        """
+        Returns a list of currently playing sounds.
+        The list may include synchronous or asynchronous sounds.
+        """
+
+        ch = self._getChannelByID(channel.id)
+        return ch.getPlaying()
+
+    def isPaused(self, channel):
+
+        """
+        Check if audio playback is paused.
+        """
+
+        ch = self._getChannelByID(channel.id)
+        return ch.isPaused()
 
     def shutdownChannel(self, channel):
 
