@@ -872,7 +872,8 @@ class DatabaseHandle():
         Add a dataset to the database.
         """
 
-        self._execute("INSERT INTO "+dataset.getTable()+"("+", ".join(dataset.getColumnNames())+") VALUES ("+", ".join(map(str,dataset._entries))+")")
+        values = dataset._entries
+        self._execute("INSERT INTO "+dataset.getTable()+"("+", ".join(dataset.getColumnNames())+") VALUES ("+", ".join(["?"] * len(values))+")", values)
         self._db.commit()
 
     def deleteDataset(self, dataset):
@@ -895,9 +896,15 @@ class DatabaseHandle():
 
         pairs = []
         for i in dataset.getColumnNames():
-            pairs.append(i+"="+str(dataset.getValue(i)))
+            pairs.append(i+"=:"+i)
 
-        self._updateInTable(dataset.getTable(),", ".join(pairs),"ROWID IS "+str(dataset.getIndex()),True)
+        values = {}
+        for i in dataset.getColumnNames():
+            values[i] = dataset.getValue(i)
+
+        values["ROWID"] = dataset.getIndex()
+        self._execute("UPDATE " + dataset.getTable() + " SET " + ", ".join(pairs) + " WHERE ROWID=:ROWID", values)
+        self._db.commit()
 
     def getDataset(self, dataset) -> DatasetHandle:
 
@@ -919,9 +926,11 @@ class DatabaseHandle():
 
         q = []
         for i in req.items(): #Create our query definitions
-            q.append(i[0]+"="+i[1])
+            q.append(i[0]+"=:"+i[0])
 
-        res = self._getFromTable(dataset.getTable(), ",".join(q), "*, ROWID")
+        qs = "SELECT *, ROWID FROM %s WHERE (%s)" % (dataset.getTable(), ",".join(q))
+        self._execute(qs, req)
+        res = self._cursor.fetchall()
 
         if not res:
             return False #in case of faliure we don't update anything and just inform the user that things went sideways

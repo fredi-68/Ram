@@ -391,7 +391,7 @@ class ResponseManager():
                             #If this happens, it's the users fault, since we cannot split the message up
                             #without causing issues. We will attempt to send it but it WILL fail.
                             #Let the error propagate.
-                            await self.client.send_message(self.msg.channel, self.chan_message.pop(0))
+                            await self.client.send_message(self.msg.channel, self.chat_messages.pop(0))
                         break
 
                     ret += self.chat_messages.pop(0) #get next message and add it to the buffer.
@@ -625,6 +625,22 @@ class CmdVoice(Command):
             await client.join_voice_channel(channel)
         except discord.errors.DiscordException:
             await self.respond("Failed to join voice channel.", True)
+            return
+
+        #Load audio configuration for server
+        db = self.db.getServer(self.msg.server.id)
+        db.createTableIfNotExists("voiceClientSettings", {"name": "text", "value": "text"})
+        ds = db.createDatasetIfNotExists("voiceClientSettings", {"name": "volume"})
+        if not ds.exists():
+            return
+
+        volume = ds.getValue("value")
+        if volume in (None, "None"): #Some dataset weirdness
+            return
+
+        ch = self.audioManager.createChannel(channel)
+        ch.setVolume(float(volume))
+
         return
 
 COMMANDS.append(CmdVoice())

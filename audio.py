@@ -455,6 +455,25 @@ class AudioManager():
         self.client = client
         self.channels = {}
 
+    def createChannel(self, channel):
+
+        """
+        Create a new ChannelStream for this channel.
+        Return the initialized ChannelStream instance associated with this voice client.
+        If a ChannelStream already exists for this channel, it is returned instead.
+        If no voice client was found on this server, AudioError will be raised.
+        """
+
+        try:
+            return self._getChannelByID(channel.id)
+        except AudioError:
+            try:
+                cs = ChannelStream(channel.server.voice_client)
+            except AttributeError:
+                raise AudioError("No voice client associated with this server.")
+            self.channels[channel.id] = cs
+            return cs
+
     def playSound(self, sound, channel, sync=True):
 
         """
