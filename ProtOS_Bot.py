@@ -847,12 +847,21 @@ class CmdCSOpt(Command):
         self.aliases.append("csoptions")
         self.aliases.append("cso")
 
-        self.desc = "Interface with the conversation simulator.\n\nArgument 'action' should be either 'get' or 'set'"
+        self._original_desc = "Interface with the conversation simulator.\n\nArgument 'action' should be either 'get' or 'set'"
+        self.desc = self._original_desc
 
         self.addArgument(Argument("action", CmdTypes.STR))
         self.addArgument(Argument("option", CmdTypes.STR))
         
         self.ownerOnly = True
+
+    async def getHelp(self):
+        
+        #Update command description to include option hints generated from currently active conversation simulator
+        res = chatutils.mdCode(await CONVERSATION_SIMULATOR.getOpt("HELP"))
+        self.desc = self._original_desc + "\n\nAvailable options for conversation simulator %s:\n%s" % (CONVERSATION_SIMULATOR.name, res)
+
+        return await super().getHelp()
 
     async def call(self, action, option):
 
@@ -1112,7 +1121,7 @@ async def process_command(responseHandle):
                 if i.name == words[1] and not i.hidden: #make sure hidden commands don't come up in the search
                     #set environment variables for external commands
                     i._setVariables(client, CONFIG_MANAGER, responseHandle, DATABASE_MANAGER, AUDIO_MANAGER)
-                    await responseHandle.reply(i.getHelp(), False) #generate help information and send it to the user
+                    await responseHandle.reply(await i.getHelp(), False) #generate help information and send it to the user
                     responseHandle.close()
                     return
             await responseHandle.reply(ICONS["error"] + " That command does not exist.", True)

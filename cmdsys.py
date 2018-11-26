@@ -224,7 +224,7 @@ class Command():
 
         return s
 
-    def getHelp(self):
+    async def getHelp(self):
 
         """
         Get documentation for the command

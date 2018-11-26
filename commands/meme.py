@@ -30,7 +30,7 @@ class MyCommand(Command):
             self.logger.exception("ImageLib couldn't be initialized, this command will not be available.")
             self.allowChat = False
 
-    def getHelp(self):
+    async def getHelp(self):
 
         #We override this to update the description each time we query the help page to update available templates
         templates = self.loadTemplates(BASE_PATH)
@@ -42,7 +42,7 @@ class MyCommand(Command):
             for i in templates:
                 self.desc += i["name"] + "\n"
 
-        return Command.getHelp(self)
+        return await Command.getHelp(self)
 
     def loadTemplates(self, path):
 
