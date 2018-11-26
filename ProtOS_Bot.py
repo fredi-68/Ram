@@ -937,8 +937,9 @@ for i in os.listdir("commands"):
     path = os.path.join("commands", i)
     try:
         module = loadModule(path)
-    except ImportError:
+    except ImportError as e:
         imports_failed.append(i)
+        logger.debug("Module import for file %s failed: %s" % (i, str(e)))
         continue
     except:
         imports_failed.append(i)
@@ -955,6 +956,7 @@ for i in os.listdir("commands"):
                     cmd = thing()
                 except BaseException as e:
                     logger.warn("Initializing command extension failed (source: %s): %s" % (i, str(e)))
+                    logger.debug(traceback.format_exc())
                     continue
                 logger.debug("Registering command extension %s..." % cmd.name)
                 COMMANDS.append(cmd)
