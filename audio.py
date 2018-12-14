@@ -14,6 +14,8 @@ import collections
 import shlex
 import subprocess
 import threading
+import json
+import random
 
 import discord
 
@@ -45,6 +47,13 @@ class Sound():
         self.title = title
         self.author = author
         self.uri = "<empty>"
+
+        #used for auto crossfade feature.
+        #offset should be set to the amount of audio frames that have been played so far.
+        #duration should be the total length of the sound, in frames.
+        #if duration is unknown or cannot be determined, it should be set to a negative value.
+        self.duration = -1 
+        self.offset = 0
 
     def setVolume(self, volume):
 
@@ -168,18 +177,47 @@ class FFMPEGSound(Sound):
 
         self.uri = target #ensure target is displayed correctly
 
-    def prepare(self, channel):
+    def _create_player(self, sampling_rate, channel_count):
 
-        self.logger.debug("Preparing FFMPEG sound to play on channel %s..." % channel.voice_client.channel.name)
-        encoder = channel.voice_client.encoder
-        cmd = "ffmpeg -i %s -f s16le -ar %i -ac %i -loglevel warning pipe:1" % (shlex.quote(self.target), encoder.sampling_rate, encoder.channels)
+        self.logger.debug("Creating transcoder process...")
+        cmd = "ffmpeg -i %s -f s16le -ar %i -ac %i -loglevel warning pipe:1" % (shlex.quote(self.target), sampling_rate, channel_count)
         try:
-            self.process = subprocess.Popen(shlex.split(cmd), stdin=None, stdout=subprocess.PIPE, stderr=None)
+            process = subprocess.Popen(shlex.split(cmd), stdin=None, stdout=subprocess.PIPE, stderr=None)
         except FileNotFoundError:
             raise AudioError("FFMPEG was not found.")
         except subprocess.SubprocessError as e:
             self.logger.exception("An error occured while trying to setup FFMPEG process: ")
             raise AudioError("subprocess.Popen failed: %s" % str(e))
+
+        return process
+
+    def _probe_target(self, sampling_rate, channel_count):
+
+        self.logger.debug("Probing target...")
+        cmd = "ffprobe -i %s -select_streams a:0 -show_entries stream=duration -loglevel warning -of json" % shlex.quote(self.target)
+        try:
+            process = subprocess.Popen(shlex.split(cmd), stdin=None, stdout=subprocess.PIPE, stderr=None)
+        except FileNotFoundError:
+            raise AudioError("FFMPEG was not found.")
+        except subprocess.SubprocessError as e:
+            self.logger.exception("An error occured while probing the source file: ")
+            return
+
+        buf = process.stdout.read(-1)
+        if process.poll() == None:
+            process.communicate()
+        process.kill()
+
+        self.logger.debug("Processing metadata...")
+        d = json.loads(buf)
+        self.duration = int(channel_count * sampling_rate * float(d["streams"][0].get("duration", -1))) #convert duration to samples
+
+    def prepare(self, channel):
+
+        self.logger.debug("Preparing FFMPEG sound to play on channel %s..." % channel.voice_client.channel.name)
+        encoder = channel.voice_client.encoder
+        self._probe_target(encoder.sampling_rate, encoder.channels)
+        self.process = self._create_player(encoder.sampling_rate, encoder.channels)
 
     def play(self):
 
@@ -194,8 +232,11 @@ class FFMPEGSound(Sound):
 
         if not self.is_paused:
             buf = self.process.stdout.read(n)
-            if len(buf) < 1:
+            l = len(buf)
+            self.offset += l #increment offset so the audio engine knows where we are
+            if l < 1:
                 self.logger.debug("Sound buffer exhausted, deinitializing...")
+                self.offset = self.duration
                 self.kill()
 
             return self.doVolume(self.doPanning(buf))
@@ -212,20 +253,6 @@ class FFMPEGSound(Sound):
         self.kill()
         self.logger.debug("FFMPEG sound stopped.")
 
-class YTDLSound(FFMPEGSound):
-
-    """
-    Class representing a resource from a music streaming service.
-
-    Uses youtube_dl to download/stream the track. The URI is validated on
-    instanciation, but the download URL is only fetched as soon as the sound
-    becomes ready to prevent playback token timeouts.
-
-    TODO: Implement
-    """
-
-    pass
-
 class ChannelStream():
 
     """
@@ -240,6 +267,7 @@ class ChannelStream():
         self.channel = voice_client.channel
         self.voice_client = voice_client
         self.volume = 1.0
+        self.crossfade = False
         self._playing = []
         self._queue = collections.deque()
         self._player = None
@@ -420,6 +448,26 @@ class ChannelStream():
         if sync:
             return self.playSoundSynchroneous(sound)
         return self.playSoundAsynchroneous(sound)
+
+    def shuffle(self):
+
+        """
+        Randomizes the queue.
+        """
+
+        self.rmLock.acquire()
+        self._queue = collections.deque(random.sample(self._queue, len(self._queue))) #create a random list from the elements of the queue, turn it into a deque
+        self.rmLock.release()
+
+    def clear(self):
+
+        """
+        Clears the queue.
+        """
+
+        self.rmLock.acquire()
+        self._queue.clear()
+        self.rmLock.release()
 
     def shutdown(self):
 

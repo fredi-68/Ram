@@ -852,6 +852,7 @@ class CmdCSOpt(Command):
 
         self.addArgument(Argument("action", CmdTypes.STR))
         self.addArgument(Argument("option", CmdTypes.STR))
+        self.addArgument(Argument("value", CmdTypes.STR, True))
         
         self.ownerOnly = True
 
@@ -863,7 +864,7 @@ class CmdCSOpt(Command):
 
         return await super().getHelp()
 
-    async def call(self, action, option):
+    async def call(self, action, option, value=None):
 
         action = action.lower()
         if action == "get":
@@ -876,9 +877,9 @@ class CmdCSOpt(Command):
             await self.respond("Value of '%s': '%s'" % (option, res))
 
         elif action == "set":
-            self.logger.debug("Getting CS option '%s'..." % option)
+            self.logger.debug("Setting CS option '%s'..." % option)
             try:
-                await CONVERSATION_SIMULATOR.setOpt(option)
+                await CONVERSATION_SIMULATOR.setOpt(option, value)
             except ValueError:
                 await self.respond("This option is not supported by this implementation.", True)
                 return
@@ -1303,7 +1304,10 @@ async def process_command(responseHandle):
                                 responseHandle.close()
                                 return #again, probably timed out
                             arguments[i.arguments[j].name] = message.channel #post selector worked, arg parsing done
-                            await client.delete_message(message) #get rid of the message the user posted to select
+                            try:
+                                await client.delete_message(message) #get rid of the message the user posted to select
+                            except discord.HTTPException:
+                                pass
                             continue
 
                         ret = chatutils.getChannelMention(arg)

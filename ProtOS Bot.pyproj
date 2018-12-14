@@ -73,6 +73,9 @@
     <Compile Include="commands\eightball.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="commands\ffmpegCmd.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="commands\hmmCmd.py">
       <SubType>Code</SubType>
     </Compile>
@@ -208,6 +211,9 @@
     </Compile>
     <Compile Include="RAT\network.py" />
     <Compile Include="RAT\perm.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="test_ffprobe.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="twitch.py">
