@@ -5,7 +5,7 @@ import asyncio
 import discord
 
 from cmdsys import *
-from audio import FFMPEGSound
+from audio import FFMPEGSound, WebResourceSound
 from ytsearch import YouTubeSearch, SoundCloudSearch
 import chatutils
 
@@ -189,7 +189,7 @@ class MyCommand(Command):
                 author = track["uploader"] if "uploader" in track else "Unknown"
                 title = track["title"] if "title" in track else "Untitled"
 
-                sound = FFMPEGSound(track["url"], author=author, title=title)
+                sound = WebResourceSound(track["url"], author=author, title=title)
                 self.playSound(sound, targetChannel)
 
             await self.respond("Queued %i track(s)." % i)

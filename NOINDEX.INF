@@ -9,3 +9,4 @@ TODO.txt
 commit.BAT
 .git
 .gitignore
+test_ffprobe.py

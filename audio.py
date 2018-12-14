@@ -16,10 +16,16 @@ import subprocess
 import threading
 import json
 import random
+import uuid
+import urllib
+import os
 
 import discord
 
+from version import S_TITLE_VERSION
+
 READ_BUFFER_SIZE = 1024
+DOWNLOAD_BUFFER_SIZE = 4096
 SAMPLE_WIDTH = 2
 
 class AudioError(Exception):
@@ -252,6 +258,63 @@ class FFMPEGSound(Sound):
 
         self.kill()
         self.logger.debug("FFMPEG sound stopped.")
+
+class WebResourceSound(FFMPEGSound):
+
+    TEMP_DIR = "_temp/audio"
+    USER_AGENT = S_TITLE_VERSION
+
+    def __init__(self, target, *args, **kwargs):
+
+        self._cleanup_done = False
+
+        #Download remote resource, then change target
+        temp_dir = kwargs.get("temp_dir", self.TEMP_DIR)
+
+        os.makedirs(temp_dir, exist_ok=True) #make temporary directory if it doesn't already exist
+        
+        #make a temporary filename
+        filename = uuid.uuid1().hex
+        self.filename = os.path.join(temp_dir, filename)
+
+        self.logger.debug("Downloading resource...")
+        
+        req = urllib.request.Request(target, headers={"User-Agent": self.USER_AGENT})
+        res = urllib.request.urlopen(req)
+
+        with open(self.filename, "wb") as f:
+            while True:
+                d = res.read(DOWNLOAD_BUFFER_SIZE)
+                if not d:
+                    break
+                f.write(d)
+
+        self.logger.debug("Download complete. Creating FFMPEGSound...")
+
+        super().__init__(self.filename, *args, **kwargs)
+
+    def stop(self):
+
+        #Wait for FFMPEG to finish/stop
+        super().stop()
+
+        #clean up temp storage
+        self.logger.debug("Removing temporary audio files...")
+        try:
+            os.remove(self.filename)
+        except OSError as e:
+            self.logger.warn("Unable to remove temporary local audio file: %s" % str(e))
+        self._cleanup_done = True
+
+    def __del__(self):
+
+        if not self._cleanup_done:
+            self.logger.warn("Instance did not clean up properly. Attempting to remove temporary files...")
+            try:
+                os.remove(self.filename)
+            except OSError as e:
+                self.logger.warn("Unable to remove temporary local audio file: %s" % str(e))
+            self._cleanup_done = True
 
 class ChannelStream():
 
