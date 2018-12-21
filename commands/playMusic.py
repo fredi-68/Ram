@@ -53,7 +53,7 @@ class MyCommand(Command):
             "```",
             "  youtube",
             "  soundcloud",
-            "  search (use default, alias for 'youtube'",
+            "  search (use default, alias for 'youtube')",
             "```"
             ]
 
@@ -109,6 +109,8 @@ class MyCommand(Command):
         return list(results.keys())[index]
 
     async def call(self, query, **kwargs):
+
+        loop = asyncio.get_event_loop()
 
         if not (hasattr(self.msg.server, "voice_client") and self.msg.server.voice_client):
             await self.respond("I'm currently not in a voice channel on this server.", True)
@@ -189,7 +191,10 @@ class MyCommand(Command):
                 author = track["uploader"] if "uploader" in track else "Unknown"
                 title = track["title"] if "title" in track else "Untitled"
 
-                sound = WebResourceSound(track["url"], author=author, title=title)
+                #this is necessary because the WebResourceSound downloads the target resource on instance creation.
+                #Since this can take quite some time, the websocket can timeout before the sound is ready since the
+                #program blocks because we can't await inside of a constructor.
+                sound = await loop.run_in_executor(None, lambda: WebResourceSound(track["url"], author=author, title=title))
                 self.playSound(sound, targetChannel)
 
             await self.respond("Queued %i track(s)." % i)

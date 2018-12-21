@@ -15,6 +15,7 @@ class MyCommand(Command):
 
     async def call(self, volume=None, server=None, **kwargs):
 
+        #This whole thing is pretty pointless rn since we aren't allowing console to access this command
         if not server:
             if not self.msg:
                 await self.respond("You need to specify a server when setting volume from console.")

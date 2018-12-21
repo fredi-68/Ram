@@ -195,6 +195,35 @@ class Command():
 
         self.audioManager.playSound(sound, channel, sync)
 
+    def getAuthorPermissions(self):
+
+        """
+        Return the discord.Permissions object associated with the author of
+        the message that invoked this command.
+        This can be useful if certain functionality of your command requires elevated
+        permissions over the permissions it already requires by specification.
+        """
+
+        return self.responseHandle.getPermission()
+
+    def isOwner(self):
+
+        """
+        Check if the author of the message that invoked this command is the bot owner.
+        This can be useful if certain functionality of your command requires elevated
+        permissions over the permissions it already requires by specification.
+        Returns True if the author is the owner, False otherwise.
+        If the command was called from console, user ID check is skipped and this method will
+        return True.
+        If the bot ownership is not set in the config file and the command was issued from chat,
+        this method will always return False.
+        """
+
+        if self.responseHandle.is_rpc():
+            return True
+        owner = self.config.getElementText("bot.owner", "")
+        return owner == self.responseHandle.getID()
+
     def addArgument(self, argument):
 
         """

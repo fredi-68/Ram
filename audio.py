@@ -243,11 +243,14 @@ class FFMPEGSound(Sound):
             if l < 1:
                 self.logger.debug("Sound buffer exhausted, deinitializing...")
                 self.offset = self.duration
-                self.kill()
+                self.stop() #make sure we deinitialize properly, just calling kill() here skips the entire FFMPEG shutdown process
 
             return self.doVolume(self.doPanning(buf))
 
     def stop(self):
+
+        if self.is_dead:
+            return
 
         self.logger.debug("FFMPEG sound stopping...")
         if self.process != None:
@@ -522,14 +525,21 @@ class ChannelStream():
         self._queue = collections.deque(random.sample(self._queue, len(self._queue))) #create a random list from the elements of the queue, turn it into a deque
         self.rmLock.release()
 
-    def clear(self):
+    def clear(self, force=False):
 
         """
         Clears the queue.
         """
 
         self.rmLock.acquire()
+
         self._queue.clear()
+
+        for i in self._playing.copy():
+            if i.skippable or force:
+                i.stop()
+                self._playing.remove(i)
+
         self.rmLock.release()
 
     def shutdown(self):
@@ -695,3 +705,13 @@ class AudioManager():
 
         ch = self._getChannelByID(channel.id)
         return ch.setVolume(volume)
+
+    def clearQueue(self, channel, force=False):
+
+        """
+        Clears the entire queue and skips all currently playing sounds.
+        If force is True, skippable sounds are also skipped.
+        """
+
+        ch = self._getChannelByID(channel)
+        ch.clear(force)

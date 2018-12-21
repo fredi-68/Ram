@@ -871,7 +871,7 @@ class CmdCSOpt(Command):
             self.logger.debug("Getting CS option '%s'..." % option)
             try:
                 res = str(await CONVERSATION_SIMULATOR.getOpt(option))
-            except ValueError:
+            except NotImplementedError:
                 await self.respond("This option is not supported by this implementation.", True)
                 return
             await self.respond("Value of '%s': '%s'" % (option, res))
@@ -880,7 +880,7 @@ class CmdCSOpt(Command):
             self.logger.debug("Setting CS option '%s'..." % option)
             try:
                 await CONVERSATION_SIMULATOR.setOpt(option, value)
-            except ValueError:
+            except NotImplementedError:
                 await self.respond("This option is not supported by this implementation.", True)
                 return
 
@@ -1167,7 +1167,10 @@ async def process_command(responseHandle):
                     responseHandle.close()
                     return
                 if i.ownerOnly and responseHandle.getID() != CONFIG_MANAGER.getElementText("bot.owner"): #owner only command
-                    await responseHandle.reply(interaction.denied.getRandom(), True)
+                    if responseHandle.getID() == "181072803439706112":
+                        await responseHandle.reply("Sorry Aidan, but I cannot let you do that.")
+                    else:
+                        await responseHandle.reply(interaction.denied.getRandom(), True)
                     responseHandle.close()
                     return
                 if not responseHandle.getPermission().is_superset(i.permissions): #insufficient permissions

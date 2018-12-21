@@ -11,27 +11,34 @@ class MyCommand(Command):
         self.aliases.append("stop")
         self.desc = """
         Skip the current sound.\n
-        \n
-        Accepts the following flags:\n
-        -force: Will skip the next sound, even if it is unskippable. Owner only.\n
-        -all: Will skip all sounds in the queue.
+        Accepts the following flags:
+        -f: Will skip the next sound, even if it is unskippable. Owner only.
+        -a: Will skip all sounds in the queue.
         """
         self.addArgument(Argument("flags", CMD_TYPE_STR, True))
-        self.permissions.administrator = True
+        self.permissions.move_members = True
         self.allowConsole = False
 
     async def call(self, flags="", **kwargs):
 
         server = self.msg.server
-
-        if "-force" in flags:
-            pass
-
-        if "-all" in flags:
-            pass
+        force = False
 
         if not (hasattr(server, "voice_client") and server.voice_client):
             await self.respond("I'm currently not in a voice channel on this server.", True)
+            return
+
+        if "-f" in flags:
+            if not self.isOwner():
+                await self.respond("This command requires elevated permissions.")
+                return
+            force = True
+
+        if "-a" in flags:
+            try:
+                self.audioManager.clearQueue(server.voice_client.channel, force)
+            except AudioError as e:
+                await self.respond("Unable to clear queue on channel %s: %s" % (server.voice_client.channel.name, str(e)), True)
             return
 
         try:
