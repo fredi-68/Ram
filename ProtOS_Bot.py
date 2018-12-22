@@ -279,7 +279,12 @@ class ResponseManager():
             return p
         #make sure that user permissions are only retrieved from discord if we are in a public server (admin commands should not work in DMs)
         elif self.is_chat() and self.msg.channel.type == discord.ChannelType.text:
-            return self.msg.author.permissions_in(self.msg.channel)
+            local_permissions = self.msg.author.permissions_in(self.msg.channel)
+            try:
+                server_permissions = self.msg.author.server_permissions
+            except:
+                server_permissions = discord.Permissions.none()
+            return discord.Permissions(local_permissions.value | server_permissions.value) #union both permissions
         #if everything fails, we return a safe permissions object without any permissions
         return discord.Permissions.none()
 
@@ -1162,6 +1167,7 @@ async def process_command(responseHandle):
 
             #is the user allowed to use this command?
             if responseHandle.is_chat():
+
                 if not i.allowChat:
                     await responseHandle.reply(ICONS["forbidden"] + " This command is not available in chat!")
                     responseHandle.close()
