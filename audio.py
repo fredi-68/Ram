@@ -295,6 +295,7 @@ class WebResourceSound(FFMPEGSound):
         self.logger.debug("Download complete. Creating FFMPEGSound...")
 
         super().__init__(self.filename, *args, **kwargs)
+        self.uri = target #FFMPEGSound would mess up here since it doesn't know we are actually queueing a local copy
 
     def stop(self):
 
@@ -390,17 +391,54 @@ class ChannelStream():
                 self._playing.remove(i)
         self.rmLock.release()
 
-    def next(self):
+    def skip(self, index=0, force=False):
+
+        """
+        Skip the currently playing sound or a sound from the queue.
+        If index is 0, all currently playing sounds are skipped.
+        If index is > 0, the sound in the queue at position index - 1
+        is removed from the queue instead.
+        If force is True, all sounds, even if unskippable, will be skipped.
+        Otherwise, only skippable sounds will be affected.
+        """
+
+        if index < 1:
+            #skip current sound
+            self.next(force)
+            return
+
+        #skip from queue, make sure it is not empty
+        if len(self._queue) < 1:
+            raise AudioError("Queue is empty.")
+
+        if index == 1:
+            #delete first element
+            self.rmLock.acquire()
+            self._queue.popleft()
+            self.rmLock.release()
+
+        else:
+            #delete nth element
+            index -= 1
+            self.rmLock.acquire()
+            self._queue.rotate(-index)
+            self._queue.popleft()
+            self._queue.rotate(index)
+            self.rmLock.release()
+
+    def next(self, force=False):
 
         """
         Play the next sound in the queue.
         Sounds that are playing are skipped, unless they are unskippable. In this case,
         the channel will wait until those sounds have completed, then launch the next sound in the queue.
+        If force is True, the next sound in queue will start playing immediately. All other sounds are
+        stopped, even if unskippable.
         """
 
         self.rmLock.acquire()
         for i in self._playing.copy():
-            if i.skippable:
+            if i.skippable or forced:
                 i.stop()
                 self._playing.remove(i)
         self.rmLock.release()
@@ -625,18 +663,19 @@ class AudioManager():
             raise AudioError("There is no audio being transmitted on this channel.")
         return self.channels[ID]
 
-    def skipSound(self, channel):
+    def skipSound(self, channel, index=0, force=False):
 
         """
         Skips the sound currently playing on the specified channel.
         This only works if the queue on the channel is not empty.
+        If force is True, unskippable sounds will be skipped as well.
         """
 
         ch = self._getChannelByID(channel.id)
         if not ch.hasAudio():
             raise AudioError("The queue on this channel is empty.")
 
-        ch.next() #skip the currently playing sounds
+        ch.skip(index, force)
 
     def pauseSound(self, channel):
 

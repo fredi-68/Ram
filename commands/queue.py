@@ -39,7 +39,7 @@ class MyCommand(Command):
             e = discord.Embed(title="Audio queue for channel '%s'" % channel.name, description="", color=discord.Color(0x6464FF))
 
             for i in range(len(queue)):
-                e.add_field(name="%i. %s - %s" % (i, queue[i].author, queue[i].title), value=queue[i].uri.split("?", 1)[0], inline=False)
+                e.add_field(name="%i. %s - %s" % (i+1, queue[i].author, queue[i].title), value=queue[i].uri.split("?", 1)[0], inline=False)
 
             await self.embed(e)
         else:

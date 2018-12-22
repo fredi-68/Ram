@@ -10,16 +10,20 @@ class MyCommand(Command):
         self.name = "skip"
         self.aliases.append("stop")
         self.desc = """
-        Skip the current sound.\n
+        Skip the current sound.
+
         Accepts the following flags:
         -f: Will skip the next sound, even if it is unskippable. Owner only.
         -a: Will skip all sounds in the queue.
+
+        NOTE: To use flags, specifying an explicit index is mandatory.
         """
+        self.addArgument(Argument("index", CmdTypes.INT, True))
         self.addArgument(Argument("flags", CMD_TYPE_STR, True))
         self.permissions.move_members = True
         self.allowConsole = False
 
-    async def call(self, flags="", **kwargs):
+    async def call(self, index=0, flags="", **kwargs):
 
         server = self.msg.server
         force = False
@@ -44,6 +48,6 @@ class MyCommand(Command):
             return
 
         try:
-            self.audioManager.skipSound(server.voice_client.channel)
+            self.audioManager.skipSound(server.voice_client.channel, index, force)
         except AudioError as e:
             await self.respond("Unable to skip sound on channel %s: %s" % (server.voice_client.channel.name, str(e)), True)
