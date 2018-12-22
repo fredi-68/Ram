@@ -713,5 +713,16 @@ class AudioManager():
         If force is True, skippable sounds are also skipped.
         """
 
-        ch = self._getChannelByID(channel)
+        ch = self._getChannelByID(channel.id)
         ch.clear(force)
+
+    def shuffleQueue(self, channel):
+
+        """
+        Randomizes the queue.
+        Does not affect currently playing sounds.
+        DOES affect unskippable sounds.
+        """
+
+        ch = self._getChannelByID(channel.id)
+        ch.shuffle()

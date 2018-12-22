@@ -28,6 +28,8 @@ class MyCommand(Command):
             await self.respond("I'm currently not in a voice channel on this server.", True)
             return
 
+        flags = flags.split(" ")
+
         if "-f" in flags:
             if not self.isOwner():
                 await self.respond("This command requires elevated permissions.")

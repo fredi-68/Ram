@@ -273,6 +273,9 @@ class Command():
 
         s += "\n\n"+self.getUsage()+"\n"
 
+        if len(self.arguments) < 1:
+            return s #skip argument header completely if we don't have any arguments
+
         s += "\nArguments:\n" #Give more information about arguments
         for i in self.arguments:
             s += "  '"+i.name+"' ("
