@@ -306,7 +306,7 @@ class ResponseManager():
         """
         Send a response message to the command issuer.
         mention specifies if the targeted user should be mentioned and is
-        ignored if the command was executed via RPC.
+            ignored if the command was executed via RPC.
         Output is automatically buffered for RPC calls.
         If flush_chat is True, the message will be dispatched immediately. It is ignored for RPC calls.
 

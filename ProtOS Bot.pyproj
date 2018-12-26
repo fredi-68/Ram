@@ -151,6 +151,7 @@
     <Compile Include="commands\setVolume.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="commands\shuffle.py" />
     <Compile Include="commands\skipSound.py">
       <SubType>Code</SubType>
     </Compile>

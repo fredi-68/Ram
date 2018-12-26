@@ -379,9 +379,15 @@ class SocketHandle(asyncio.DatagramProtocol):
 
         #So far using asyncios internal datagram enpoint system has NOT worked out for us...
         #So I will now attempt to do what I saw someone else do and do voice socket polling manually.
-        #EDIT: Doesn't work either. The fact that this is a from a merge request on the discord.py
-        #repo that is verly likely to be approved makes me think that this is either a windows only
+        #EDIT: Doesn't work either. The fact that this is a from a pull request on the discord.py
+        #repo that is verly likely to be approved makes me think that this is either a Windows only
         #problem or something is wrong with my machine.
+        #UPDATE: This issue is definitely not limited to Windows. Ran some tests on Linux and was able
+        #to reproduce the problem. Either asyncio's UDP implementation is completely glitched out,
+        #Discords voice communication docs are outdated as fuck or discord.py's NAT traversal
+        #implementation doesn't work...
+        #May have to look into UPnP for setting up port forwarding. Thing is, Discord's own client can
+        #deal with this issue seemingly without any effort. So there HAS to be a way to do it without.
 
         #self.loop.create_task(self._poll_socket()) #start packet listener
 
@@ -406,6 +412,7 @@ class SocketHandle(asyncio.DatagramProtocol):
         """
 
         self.logger.debug("Connection established. Listening for packets...")
+        self.logger.debug("Transport type is %s" % str(type(transport)))
 
         self.transport = transport
 
@@ -415,6 +422,11 @@ class SocketHandle(asyncio.DatagramProtocol):
         #Apparently, the underlying asyncio loop produces an uncaught error that has something to do with an invalid socket handle.
         #I'd place my bet on a race condition between the socket disconnecting and the handle being invalidated but since it happens EVERY TIME
         #that doesn't sound quite right.
+        #UPDATE: I think I may know what is going on here. This error occurs when using the same socket used for voice transmission for
+        #receiving voice, but not if we just connect a new socket to the same address. I reckon that the socket gets closed somewhere and as a result
+        #we end up with an ivalid socket object in one of the two libraries which crashes asyncio.
+        #UPDATE 2: This error only occurs on Windows, not on Linux. Checked all known combinations that can cause it and none made the program crash,
+        #so it's probably safe to say that it is indeed a bug within the Windows implementation of asyncio.
 
         self.logger.debug("Connection lost, cleaning up...")
 
@@ -441,6 +453,11 @@ class SocketHandle(asyncio.DatagramProtocol):
                 return #ignore faulty packets
 
         self._writeToBuffer(packet) #send the packet to the buffer
+
+    def error_received(self, exc):
+
+        self.logger.exception("An exception occured in UDP voice receive I/O: ")
+        return
 
     def _writeToBuffer(self, packet):
 
@@ -609,12 +626,16 @@ class SocketHandle(asyncio.DatagramProtocol):
         #Protocol to be GCed. Just closing it should be fine. Also don't forget to delete any references to it.
         if self.transport and not self.transport.is_closing():
             #fist, we try to close the connection the "nice" way
-            if hasattr(self.transport, "can_write_eof") and self.transport.can_write_eof():
-                try:
-                    self.transport.write_eof()
-                except:
-                    pass #something went wrong... perhaps the method was STILL not implemented?
+            try:
+                if hasattr(self.transport, "can_write_eof") and self.transport.can_write_eof():
+                    try:
+                        self.transport.write_eof()
+                    except:
+                        pass #something went wrong... perhaps the method was STILL not implemented?
+            except NotImplementedError:
+                pass
             #request a connection termination, everything else is left to the transport
+            
             self.transport.close()
             #Does cross-referencing present an issue for GC? We will make sure to delete any cross references anyway, just so nothing weird happens
             #(Finding and closing memory leaks later would be a pain in the arse)
@@ -731,7 +752,7 @@ class _ConnectionListener(_ConnectionListenerDummy):
 
         self.logger.debug("Waiting for IP discovery...")
         while True:
-            if hasattr(voiceclient, "ws") and hasattr(voiceclient.ws, "_connection") and hasattr(voiceclient.ws._connection, "port") and hasattr(voiceclient.ws._connection, "ip"):
+            if hasattr(voiceclient, "ws") and hasattr(voiceclient.ws, "_connection") and hasattr(voiceclient.ws._connection, "port") and hasattr(voiceclient.ws._connection, "ip") and voiceclient.is_connected():
                 break
             await asyncio.sleep(0.2)
 
@@ -744,16 +765,33 @@ class _ConnectionListener(_ConnectionListenerDummy):
         self.logger.debug("Connecting...")
         try:
             #No idea why this doesn't work... it really SHOULD
-            transport, handle = await self.client.loop.create_datagram_endpoint(lambda: SocketHandle(self, voiceclient), sock=voiceclient.socket)
+            #transport, handle = await self.client.loop.create_datagram_endpoint(lambda: SocketHandle(self, voiceclient), sock=voiceclient.socket)
             #transport, handle = await self.client.loop.create_datagram_endpoint(lambda: SocketHandle(self, voiceclient), local_addr=("0.0.0.0", port), remote_addr=(voiceclient.endpoint_ip, voiceclient.voice_port)) #connect to UDP voice socket
             
             #handle = SocketHandle(self, voiceclient)
-            
+            self.client.loop.create_task(self._poll_udp_voice_socket(voiceclient))
+
         except socket.error:
             self.logger.exception("An error occured while trying to connect to voice socket: ")
             return
 
-        self.handles.append(handle) #keep a reference to the handle
+        #self.handles.append(handle) #keep a reference to the handle
+
+    async def _poll_udp_voice_socket(self, vc):
+
+        loop = asyncio.get_event_loop()
+        self.logger.debug("Starting voice debug loop...")
+        try:
+            while vc.is_connected():
+                try:
+                    data = await loop.sock_recv(vc.socket, 65536)
+                except:
+                    break
+                print(data)
+
+            self.logger.debug("Stopping voice debug loop...")
+        except asyncio.CancelledError:
+            return
 
     async def _disconnectHandle(self, handle):
 
