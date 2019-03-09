@@ -64,7 +64,7 @@ def init(do_raise = False):
     global pygame
 
     if IS_INIT:
-        return
+        return True
 
     logger.debug("Loading pygame...")
     try:
@@ -342,9 +342,6 @@ class Image(io.RawIOBase):
         size = startSize
         box = pygame.Rect(area)
 
-        #TODO: Make this more efficient
-        #Three nested loops and string processing make this
-        #very slow, possibly too slow
         while True:
             font = pygame.font.Font(fontPath, size)
             words = text.split(" ")
@@ -352,8 +349,14 @@ class Image(io.RawIOBase):
             spaceWidth = font.size(" ")[0]
             totalHeight = 0
             while len(words) > 0:
+                #we need to be careful here
+                #if we don't read anything before going into the line splitting loop,
+                #there is a possibility of the loop exiting on the first word due to it being too large for the line.
+                #in this case, this becomes an infinite loop because no word is ever pulled from the queue.
+                #To mitigate this, and to make sure lines are still split properly, we read the first word and also
+                #set the starting width to its rendered size
                 line = words.pop(0)
-                lineWidth = 0
+                lineWidth = font.size(line)[0]
                 while len(words) > 0:
             
                     sizes = font.size(words[0])
@@ -374,13 +377,15 @@ class Image(io.RawIOBase):
             if size < 1:
                 return [None, []]
 
-    def writeText(self, area, text, color, font_name=None):
+    def writeText(self, area, text, color, font_name=None, shadow_color=(0, 0, 0), draw_shadows=False):
 
         """
         Write a text to the image.
         area should be a 4 value tuple or list containing x, y position and width and height of the text object.
         text should specify the text to be rendered, while color specifies the foreground color.
         font_name optionally specifies a font name to match for. The size will be chosen appropriately.
+        If draw_shadows is True, this method will also draw a drop shadow below the text according to the
+        set shadow_color.
         """
 
         HiSize = area[3]
@@ -388,12 +393,45 @@ class Image(io.RawIOBase):
         #TODO: May want to execute this call in a Thread, as it can be rather slow
         #(we're essentially using backtracking to find the right font size, and string
         #operations are expensive)
-        size, lines = self._calculateLines(area, text, font_name, HiSize)
-        font = pygame.font.Font(font_name, size)
+        fontPath = pygame.font.match_font(font_name) if font_name else None
+        size, lines = self._calculateLines(area, text, fontPath, HiSize)
+        font = pygame.font.Font(fontPath, size)
+
+        shadow_size = int(max(1, size/20))
 
         for i in range(len(lines)):
             xoffset = area[2]//2-lines[i][1]//2
+            if draw_shadows:
+
+                s = font.render(lines[i][0], 1, shadow_color)
+                #we have to increase the surface size to ensure there is enough space for the extrusion algorithm
+                #to work properly
+                s2 = pygame.Surface((s.get_width()+shadow_size*2, s.get_height()+shadow_size*2), pygame.SRCALPHA, masks=BITMASKS)
+                s2.blit(s, (shadow_size, shadow_size))
+                self._surf.blit(self._extrude(s2, shadow_size), [area[0]+xoffset-shadow_size, area[1]+i*size-shadow_size]) #recenter the shadow
+
             self._surf.blit(font.render(lines[i][0], 1, color), [area[0]+xoffset, area[1]+i*size])
+
+    def _extrude(self, surf, width=1):
+
+        """
+        Extrude the objects in the surface by the specified width.
+        This method examines each pixel in the image and copies it to
+        the adjacent pixels in each dimension, if its color value is larger
+        than the pixel it is copying to.
+        This is particularly useful to draw drop shadows for objects such as
+        text lines.
+        The width argument specifies how many iterations are computed.
+        """
+
+        for i in range(width):
+
+            surf.blit(surf, (0, 1), special_flags=pygame.BLEND_RGBA_MAX)
+            surf.blit(surf, (0, -1), special_flags=pygame.BLEND_RGBA_MAX)
+            surf.blit(surf, (1, 0), special_flags=pygame.BLEND_RGBA_MAX)
+            surf.blit(surf, (-1, 0), special_flags=pygame.BLEND_RGBA_MAX)
+
+        return surf
 
     @classmethod
     def fromSurface(cls, surf, name=""):

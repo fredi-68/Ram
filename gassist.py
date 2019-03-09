@@ -72,7 +72,7 @@ class GoogleAssistant():
         self.logger.debug("Sending conversation query...")
 
         def iter_requests():
-            dialog_state = embedded_assistant_pb2.DialogStateIn(language_code=self.language, conversation_state = self.conversation_state if self.conversation_state else b"")
+            dialog_state = embedded_assistant_pb2.DialogStateIn(language_code=self.language, conversation_state = self.conversation_state or b"")
 
             audio_config = embedded_assistant_pb2.AudioOutConfig(encoding="LINEAR16", sample_rate_hertz=16000, volume_percentage=0)
             device_config = embedded_assistant_pb2.DeviceConfig(device_id=self.deviceID, device_model_id=self.modelID)
@@ -84,8 +84,8 @@ class GoogleAssistant():
         return_text = ""
         for resp in self.gassistInstance.Assist(iter_requests(), DEADLINE):
 
-            self.conversation_state = resp.dialog_state_out.conversation_state if resp.dialog_state_out.conversation_state else self.conversation_state
-            return_text = resp.dialog_state_out.supplemental_display_text if resp.dialog_state_out.supplemental_display_text else return_text
+            self.conversation_state = resp.dialog_state_out.conversation_state or self.conversation_state
+            return_text = resp.dialog_state_out.supplemental_display_text or return_text
 
         self.logger.debug("Got result: "+return_text)
 

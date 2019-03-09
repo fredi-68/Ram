@@ -145,6 +145,9 @@
     <Compile Include="commands\roleTimeout.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="commands\searchPrivateVideos.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="commands\setAIState.py">
       <SubType>Code</SubType>
     </Compile>
@@ -177,6 +180,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="commands\unblock.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="commands\weather.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="commands\weeb.py">
@@ -279,6 +285,7 @@
     <Content Include="chat\scripts\default.ci" />
     <Content Include="chat\scripts\hairbuns.ci" />
     <Content Include="chat\scripts\Interaction DSL.txt" />
+    <Content Include="chat\scripts\weather.ci" />
     <Content Include="config\bot.xml" />
     <Content Include="RAT\config\config.xml" />
     <Content Include="RAT\NOINDEX.INF" />

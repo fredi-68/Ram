@@ -83,15 +83,18 @@ class MyCommand(Command):
 
         for i in templates:
             if i["name"] == template:
-                
+
+                self.logger.debug("Loading image...")
                 img = imagelib.loadImage(os.path.join(BASE_PATH, i["source"]))
+                self.logger.debug("Rendering...")
                 for j in range(len(i["lines"])):
                     line = i["lines"][j] #get our line template
                     if j >= len(lines): #abort if we ran out of user input
                         break
                     text = lines[j] #get our current text line
-                    img.writeText((line["x"], line["y"], line["width"], line["height"]), text, line["color"])
+                    img.writeText((line["x"], line["y"], line["width"], line["height"]), text, line["color"], None, draw_shadows=line.get("draw_shadow", 0), shadow_color=line.get("shadow_color", (0, 0, 0)))
 
+                self.logger.debug("Uploading...")
                 await self.client.send_file(self.msg.channel, fp=img, filename=img.name, content="Here is your meme: ")
                 return
 

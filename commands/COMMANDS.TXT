@@ -215,7 +215,7 @@ And that is it! A possible call method could look like this:
 
 This command would take a single optional argument (meaning that it can be ommitted) and prints the content of that argument into the chat. Let's take a closer look at the constructor call of Argument.
 The first argument is the Argument name. This name is shown to the user in the command usage and help context and this is also the name of the keyword argument you will receive in the call method containing the argument the user entered.
-The second argument is the Argument type. There are several predefined argument types that do certain things like automatic type checking and conversion. If you don't want this behaviour, CmdTypes.STR will give you the original unaltered argument as typed by the user.
+The second argument is the Argument type. There are several predefined argument types that do certain things like automatic type checking and conversion. If you don't want this behavior, CmdTypes.STR will give you the original unaltered argument as typed by the user.
 The third argument determines, if the Argument is optional or not. An optional Argument is NOT GUARANTEED to be included in the keyword argument list when call is... well.. called. This means your code has to account for this by, for example, specifying a default value for optional arguments or implement the necessary error handling. Take your pick.
 
 Arguments are parsed, checked and converted automatically. There is, however, some special behaviour with Argument parsing one should be aware of. I will try to list all of those features here.

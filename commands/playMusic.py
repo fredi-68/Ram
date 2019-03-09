@@ -66,7 +66,7 @@ class MyCommand(Command):
         await self.respond("Searching %s..." % engine.serviceName)
         results = engine.search(query, 10)
 
-        e = discord.Embed(title="%s Search Results" % engine.serviceName, description="", color=discord.Color(color))
+        e = discord.Embed(title="%s Search Results :mag:" % engine.serviceName, description="", color=discord.Color(color))
         items = list(results.items())
         for i in range(len(results)):
             url, title = items[i]
@@ -78,6 +78,8 @@ class MyCommand(Command):
         reactions = list(SELECT_EMOTES.keys())
         for i in range(len(results)):
             await self.client.add_reaction(msg, reactions[i])
+            if i < len(results) - 1:
+                await asyncio.sleep(0.25) #avoid being rate limited if possible
 
         #Wait for user to click one
         selected = await self.client.wait_for_reaction(list(SELECT_EMOTES.keys()), user=self.msg.author, timeout=30, message=msg)

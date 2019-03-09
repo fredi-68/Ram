@@ -156,21 +156,6 @@ QUOTE_MANAGER = interaction.QuoteManager("chat/quotes/")
 _ver = list(map(int,platform.python_version_tuple())) #get python version tuple as int list
 HAS_UTF8 = ((_ver[0] == 3 and _ver[1] > 5 ) or _ver[0] > 3) #Python version 3.6 introduces console UTF-8 support, enable if possible
 
-def loadModule(path):
-
-    """
-    Handles boilerplate code for importing a module from a file.
-    Returns initialized module.
-    Raises ImportError on failure.
-    """
-
-    spec = importlib.util.spec_from_file_location("command", path)
-    if spec == None:
-        raise ImportError("Unable to load spec for module %s" % path)
-    m = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(m)
-    return m
-
 def logMessage(msg):
 
     """
@@ -932,49 +917,71 @@ class CmdSudo(Command):
 
 COMMANDS.append(CmdSudo())
 
-internal_commands = len(COMMANDS)
+class CmdTempElevate(Command):
+
+    def setup(self):
+
+        self.name = "elevate"
+        self.desc = "Elevate a users permission. This command will add an exception to a users permissions that allows them to bypass any command specific permissions.\nThis effect only lasts until the bot restarts."
+        self.hidden = True
+        self.ownerOnly = True
+        self.addArgument(Argument("action", CmdTypes.STR))
+        self.addArgument(Argument("user", CmdTypes.MEMBER))
+
+    async def call(self, action, user):
+
+        if action == "add":
+            SUPERUSERS.add(user.id)
+            await self.respond("Added user %s to the list of temporary superusers." % user.name)
+
+        elif action == "remove":
+            SUPERUSERS.discard(user.id)
+            await self.respond("Removed user %s from the list of temporary superusers." % user.name)
+
+        else:
+            await self.respond("Error: action must be 'add' or 'remove', not '%s'." % action, True)
+
+COMMANDS.append(CmdTempElevate())
+
+class CmdReloadCommands(Command):
+
+    def setup(self):
+
+        self.name = "reload"
+        self.aliases.append("reloadCommands")
+        self.aliases.append("reloadCmds")
+        self.desc = "Reloads all external commands. Internal commands are part of the core codebase and thus cannot be reloaded while the bot is running."
+        self.ownerOnly = True
+
+    async def call(self):
+
+        global COMMANDS
+        global internal_commands
+        loop = asyncio.get_event_loop()
+
+        await self.respond("Initializing...")
+        start = time.time()
+        COMMANDS.clear()
+        COMMANDS.extend(internal_commands) #first, add back all internal commands
+
+        await self.respond("Reloading commands...")
+        external = await loop.run_in_executor(None, loadCommands, "commands")
+        COMMANDS.extend(external) #second, reload all external commands and add them back
+
+        await self.respond("Reload completed in %.2f second(s). %i commands loaded (%i internal, %i external)." % (time.time()-start, len(COMMANDS), len(internal_commands), len(external)), True)
+
+COMMANDS.append(CmdReloadCommands())
+
+internal_commands = COMMANDS.copy()
 
 logger = logging.getLogger("Command")
 logger.info("Loading external commands...")
 
-#Load external commands
-imports_failed = []
-for i in os.listdir("commands"):
-    path = os.path.join("commands", i)
-    try:
-        module = loadModule(path)
-    except ImportError as e:
-        imports_failed.append(i)
-        logger.debug("Module import for file %s failed: %s" % (i, str(e)))
-        continue
-    except:
-        imports_failed.append(i)
-        logger.exception("An error occurred while loading external commands from %s: " % i)
-        continue
-    logger.debug("Loading command extension file %s..." % i)
-    stuff = dir(module)
-    for thing in stuff: #proper terminology is important
-        try:
-            thing = getattr(module, thing)
-            if issubclass(thing, Command) and not thing == Command:
-                #looks like a command
-                try:
-                    cmd = thing()
-                except BaseException as e:
-                    logger.warn("Initializing command extension failed (source: %s): %s" % (i, str(e)))
-                    logger.debug(traceback.format_exc())
-                    continue
-                logger.debug("Registering command extension %s..." % cmd.name)
-                COMMANDS.append(cmd)
-        except TypeError:
-            pass
-logger.info("Done!\n")
-
-logger.info(str(len(COMMANDS))+" command(s) loaded:")
-logger.info("  -"+str(internal_commands)+" internal command(s) - 0 Error(s)")
-logger.info("  -"+str(len(COMMANDS)-internal_commands)+" external command(s) - "+str(len(imports_failed))+" Error(s)")
-for i in imports_failed:
-    logger.warning("    -Unhandled exception caught while trying to import '"+i+"'")
+external_commands = loadCommands("commands")
+int_cmd_c = len(internal_commands)
+ext_cmd_c = len(external_commands)
+logger.info("%i commands loaded (%i internal, %i external)." % (int_cmd_c+ext_cmd_c, int_cmd_c, ext_cmd_c))
+COMMANDS.extend(external_commands) #include external commands
 
 #CONSTANTS
 
@@ -1054,405 +1061,6 @@ cmdutils.printSeparator()
 
 #COROUTINES
 
-async def dialogConfirm(msg):
-
-    """
-    Ask the user to confirm an action.
-    """
-
-    await client.send_message(msg.channel,msg.author.mention+", "+interaction.confirm.getRandom())
-    response = await client.wait_for_message(timeout=30, author=msg.author, channel=msg.channel)
-    if not response: #message timed out, user took too long or didn't respond at all
-        return
-    if response.content.lower() in ["yes","yup","yee","ya","yas","yaaas","yeah","yea"]: #extend these if needed
-        return True
-    return
-
-async def dialogReact(channel, user, message=None, emoji=None, timeout=30):
-
-    """
-    Wait for the user to select a chat message using an emoji.
-    If emoji is given, it specifies the emoji that will trigger the dialog. Otherwise the dialog will trigger using any emoji.
-    messsage specifies the promt the user is displayed with when starting the dialog. If ommitted, this will display a standard text.
-    timeout specifies the time to wait for user input. Defaults to 30 seconds if ommitted.
-    The returned value will be either of type discord.Message or None
-    """
-
-    def check(reaction, user):
-        """Our filter function. Probably could have done this with an anonymous function..."""
-        if reaction.message.channel == channel:
-            return True
-        return False
-
-    message = message if message else "Please add " + (emoji.name if emoji else "an emoji ") + "to the message you want to select." #can't be more compact than that!
-
-    await client.send_message(channel, message)
-    reaction, user = await client.wait_for_reaction(emoji=emoji, user=user, check=check, timeout=timeout)
-    return reaction.message
-
-async def sendCommandReply(cmd, reply, notify=False):
-
-    """
-    Helper function for printing command output.
-    """
-
-    if isinstance(cmd,discord.Message): #this must be a chat message
-        #write output to chat
-        rep = ""
-        if notify: #mention the author
-            rep += cmd.author.mention+", "
-        rep += reply
-        await client.send_message(cmd.channel,rep)
-    else:
-        #we just print whatever we have on screen
-        logging.getLogger("Console").info(reply)
-
-async def process_command(responseHandle):
-
-    """
-    Interface for unified command handling
-    """
-
-    content = await responseHandle.getCommand()
-    if responseHandle.is_chat():
-        content = content[len(CMD_PREFIX):] #get the content of the message (without the prefix)
-
-    #Separate the words for convenience
-    words = chatutils.splitCommandString(content)
-    if len(words) < 1:
-        responseHandle.close()
-        return #not enough words - empty message?
-
-    if words[0] in ["help", "h", "?"]: #SPECIAL CASE: This command is hardcoded since it needs access to all other commands
-        if len(words) > 1: #The user wants help on a specific command
-            for i in COMMANDS:
-                if i.name == words[1] and not i.hidden: #make sure hidden commands don't come up in the search
-                    #set environment variables for external commands
-                    i._setVariables(client, CONFIG_MANAGER, responseHandle, DATABASE_MANAGER, AUDIO_MANAGER)
-                    await responseHandle.reply(await i.getHelp(), False) #generate help information and send it to the user
-                    responseHandle.close()
-                    return
-            await responseHandle.reply(ICONS["error"] + " That command does not exist.", True)
-        else:
-            #print ALL commands and their usages
-            hs = "Commands:\n\n"
-            maxlen = 20 #maximum size of commands
-            for i in COMMANDS:
-                if i.hidden:
-                    continue #make sure hidden commands don't come up in the search
-
-                #set environment variables for external commands
-                i._setVariables(client, CONFIG_MANAGER, responseHandle, DATABASE_MANAGER, AUDIO_MANAGER)
-
-                #calculate length of command string
-                spacing = max(1, maxlen - (len(CMD_PREFIX) + len(i.name))) #how many spaces do we need to fill? Also guarantee at least one space
-                hs += CMD_PREFIX + i.name + " " * spacing + i.getUsage() + "\n"
-
-            spacing = max(1, maxlen - (len(CMD_PREFIX) + 4))
-            hs += CMD_PREFIX + "help" + " " * spacing + "Usage: +help, +h, +? -> Get this help page :D"
-            await responseHandle.reply(hs, False) #generate help information and send it to the user
-        responseHandle.close()
-        return
-
-    #if responseHandle.is_chat():
-    #    if responseHandle.getMessage().channel.is_private: #ignore commands in DMs
-    #        await responseHandle.reply(ICONS["forbidden"]+" Commands are disabled for DMs as of now.")
-    #        responseHandle.close()
-    #        return
-
-    for i in COMMANDS:
-        patterns = [i.name]
-        patterns.extend(i.aliases) #we are looking for the command name as well as all aliases
-        if words[0] in patterns: #first word matches search pattern - this is the command we are looking for
-
-            #is the user allowed to use this command?
-            if responseHandle.is_chat():
-
-                if not i.allowChat:
-                    await responseHandle.reply(ICONS["forbidden"] + " This command is not available in chat!")
-                    responseHandle.close()
-                    return
-                if i.ownerOnly and responseHandle.getID() != CONFIG_MANAGER.getElementText("bot.owner"): #owner only command
-                    if responseHandle.getID() == "181072803439706112":
-                        await responseHandle.reply("Sorry Aidan, but I cannot let you do that.")
-                    else:
-                        await responseHandle.reply(interaction.denied.getRandom(), True)
-                    responseHandle.close()
-                    return
-                if not responseHandle.getPermission().is_superset(i.permissions): #insufficient permissions
-                    await responseHandle.reply(ICONS["forbidden"] + " You do not have sufficient permission to use this command.", True)
-                    responseHandle.close()
-                    return
-
-                #Is this user blocked?
-                if responseHandle.getMessage().server: #disabled for private messages
-                    db = DATABASE_MANAGER.getServer(responseHandle.getMessage().server.id)
-
-                    ds = db.createDatasetIfNotExists("blockedUsers", {"userID": responseHandle.getMessage().author.id})
-                    if ds.exists(): #FOUND YOU
-                        await responseHandle.reply("You have been blocked from using bot commands. If you believe that this is an error please report this to the bot owner.", True)
-                        responseHandle.close()
-                        return
-
-            elif responseHandle.is_rpc():
-                if not i.allowConsole:
-                    await responseHandle.reply(ICONS["forbidden"]+" This command is not available on console!")
-                    responseHandle.close()
-                    return
-
-            #process arguments
-
-            #first, check if we have the right amount of arguments.
-            argamt = len(words) - 1
-            oblargs = [] #obligatory arguments (we will need these later)
-            optargs = [] #optional arguments
-
-            for j in i.arguments:
-
-                optargs.append(j) if j.optional else oblargs.append(j) #sort between optinal and non optional arguments
-
-            if argamt < len(oblargs): #not enough arguments
-
-                #set environment attributes for external commands
-                i._setVariables(client, CONFIG_MANAGER, responseHandle, DATABASE_MANAGER, AUDIO_MANAGER)
-                await responseHandle.reply(ICONS["error"] + " Not enough arguments\n" + i.getUsage(), True)
-
-            else:
-
-                #correct amount of arguments, next we check argument types
-                #We will assume that all arguments have to be entered in the same sequence as specified in the commad
-                #We also assume that all optional arguments are entered AFTER the obligatory ones so we will just raise an exception if they don't
-                #And we also assume that all optional arguments require earlier optional arguments to be included
-                #Any arguments left at the end will be consumed by the last argument
-
-                #TODO: Add support for command flags and subcommands (Maybe a modified Command class for this?)
-
-                arguments = {}
-
-                for j in range(0, len(words) - 1): #exclude the command itself
-                    
-                    arg = words[j + 1]
-                    if j >= len(i.arguments):
-                        break #we done
-                    elif j >= len(i.arguments) - 1:
-                        #only one left... better make it count
-                        arg = " ".join(words[j + 1:]) #make one large argument consuming the rest of the argstring
-                    errorStr = ICONS["error"] + " Illegal argument type for " + i.arguments[j].name + ": "
-                    t = i.arguments[j].type
-
-                    if t == CmdTypes.INT:
-                        try:
-                            arguments[i.arguments[j].name] = int(arg)
-                        except:
-                            await responseHandle.reply(errorStr+" Type Int expected!", True)
-                            responseHandle.close()
-                            return
-
-                    elif t == CmdTypes.FLOAT:
-                        try:
-                            arguments[i.arguments[j].name] = float(arg)
-                        except:
-                            await responseHandle.reply(errorStr + " Type Float expected!", True)
-                            responseHandle.close()
-                            return
-
-                    elif t == CmdTypes.STR:
-                        arguments[i.arguments[j].name] = str(arg) #this one doesn't need any processing, however, we don't want the command to modify this directly
-
-                    elif t == CmdTypes.BOOL:
-                        if arg.lower() in ["True", "true", "1"]:
-                            arguments[i.arguments[j].name] = True
-                        elif arg.lower() in ["False", "false", "0"]:
-                            arguments[i.arguments[j].name] = False
-                        else:
-                            await responseHandle.reply(errorStr + " Type Bool expected!", True)
-                            responseHandle.close()
-                            return
-
-                    elif t == CmdTypes.MESSAGE:
-                        if arg.lower() == "react":
-                            if not responseHandle.is_chat():
-                                await responseHandle.reply("Reaction selecting is not possible for console commands!")
-                                responseHandle.close()
-                                return
-                            message = await dialogReact(responseHandle.getMessage().channel, responseHandle.getMessage().author, "Please react to the message you are trying to select with an emoji of your choice.")
-                            if not message:
-                                responseHandle.close()
-                                return #something went wrong, most likely a timeout
-                            arguments[i.arguments[j].name] = message #reaction selector worked, arg parsing done
-                            continue
-
-                        if ":" in arg and i.allowDelimiters:
-                            #NEW FEATURE!
-                            #by using a colon to separate a channel and message ID we can specify a specific message in a specific channel
-                            ch, msg = arg.split(":", 1)
-                            try:
-                                arguments[i.arguments[j].name] = await client.get_message(client.get_channel(ch), msg)
-                            except:
-                                await responseHandle.reply(errorStr + " Not a valid channel:message ID!", True)
-                                responseHandle.close()
-                                return
-                            continue
-
-                        try:
-                            arguments[i.arguments[j].name] = await client.get_message(responseHandle.getMessage().channel, arg) #This was an oversight on my part. The current implementation REQUIRES the message to be in the same channel as the caller (thus won't work on console)
-                        except:
-                            await responseHandle.reply(errorStr + " Not a valid message ID!", True)
-                            responseHandle.close()
-                            return
-
-                    elif t == CmdTypes.CHANNEL:
-                        if arg.lower() == "post":
-                            if not responseHandle.is_chat():
-                                await responseHandle.reply("Post selecting is not possible for console commands!")
-                                responseHandle.close()
-                                return
-                            await responseHandle.reply("Please post a message in the channel you are trying to select. It will be automatically deleted.")
-                            message = await client.wait_for_message(author=responseHandle.getMessage().author, timeout=30)
-                            if not message:
-                                responseHandle.close()
-                                return #again, probably timed out
-                            arguments[i.arguments[j].name] = message.channel #post selector worked, arg parsing done
-                            try:
-                                await client.delete_message(message) #get rid of the message the user posted to select
-                            except discord.HTTPException:
-                                pass
-                            continue
-
-                        ret = chatutils.getChannelMention(arg)
-                        if ret:
-                            arg = ret
-
-                        try:
-                            arguments[i.arguments[j].name] = client.get_channel(arg)
-                        except:
-                            await responseHandle.reply(errorStr + " Not a valid channel ID!", True)
-                            responseHandle.close()
-                            return
-
-                    elif t == CmdTypes.SERVER:
-                        try:
-                            arguments[i.arguments[j].name] = client.get_server(arg)
-                        except:
-                            await responseHandle.reply(errorStr + " Not a valid server ID!", True)
-                            responseHandle.close()
-                            return
-
-                    elif t == CmdTypes.MEMBER:
-
-                        if ":" in arg and i.allowDelimiters:
-                            #We can save this by specifying a new format, using a colon to denote server and member ID:
-                            srv, mem = arg.split(":", 1)
-                            try:
-                                arguments[i.arguments[j].name] = client.get_server(srv).get_member(mem)
-                            except:
-                                await responseHandle.reply(errorStr + " Not a valid server:member ID!", True)
-                                responseHandle.close()
-                                return
-                            continue
-
-                        if not responseHandle.is_chat():
-
-                            arguments[i.arguments[j].name] = arg #can't do anything about it on console
-                            continue
-
-                        ret = chatutils.getMention(arg)
-                        if ret:
-                            arg = ret #substitute the mention with the user ID. This SHOULD work given that our RE is actually correct
-                        try:
-                            arguments[i.arguments[j].name] = responseHandle.getMessage().server.get_member(arg) #we assume the user means this server
-                        except:
-                            arguments[i.arguments[j].name] = arg
-
-                    elif t == CmdTypes.USER:
-
-                        #TODO:
-                        #This is a bit tricky. Usually discord users only have access to the user profiles that they are either
-                        #   a) friends with or
-                        #   b) in the same server with
-                        #Bot accounts are special in this regard, since they can access ANY USER PROFILE THEY CHOOSE, AS LONG AS THEY HAVE THE ID.
-                        #This gets a bit difficult if we are running an actual user account. To get access to a user JUST by their ID we could do
-                        #one of the following:
-                        #   a) search our friend list and all servers we are in for a user with the same ID (which would take ages) OR
-                        #   b) get a separate bot account JUST for actions that require a bot account. This would require this account to be somewhere in
-                        #      a server and a separate client to be created on startup. This would also make our login procedure more complicated.
-
-                        if not responseHandle.is_chat():
-
-                            arguments[i.arguments[j].name] = arg #can't do anything about it on console
-                            continue
-
-                        ret = chatutils.getMention(arg) #can still use mentions to get user IDs...
-                        if ret:
-                            arg = ret
-                        if client.user.bot:
-                            try:
-                                arguments[i.arguments[j].name] = client.get_user_info(arg) #...but this doesn't work anymore
-                            except:
-                                arguments[i.arguments[j].name] = arg
-                        else:
-                            #For now, implement version a)
-
-                            users = list(client.get_all_members())
-                            if responseHandle.getMessage().channel.is_private:
-                                users.extend(responseHandle.getMessage().channel.recipients) #additionally include users in current DM channel (cause friendslist is broken)
-                            userFound = False
-                            for user in users:
-                                if user.id == arg:
-                                    arguments[i.arguments[j].name] = user
-                                    userFound = True
-                                    break
-
-                            if not userFound:
-                                await responseHandle.reply(errorStr + " User can't be found.", True)
-                                responseHandle.close()
-                                return
-
-                    elif t == CmdTypes.ROLE:
-
-                        if ":" in arg and i.allowDelimiters:
-                            srv, role = arg.split(":", 1)
-                            try:
-                                arguments[i.arguments[j].name] = chatutils.getRole(client.get_server(srv), role)
-                            except:
-                                await responseHandle.reply(errorStr + " Not a valid server:role ID!", True)
-                                responseHandle.close()
-                                return
-                            continue
-
-                        if not responseHandle.is_chat():
-
-                            arguments[i.arguments[j].name] = arg #can't do anything about it on console
-                            continue
-
-                        ret = chatutils.getRoleMention(arg)
-                        if ret:
-                            arg = ret #substitute the mention with the role ID. This SHOULD work given that our RE is actually correct
-
-                        try:
-                            arguments[i.arguments[j].name] = chatutils.getRole(responseHandle.getMessage().server, arg) #we assume the user means this server
-                        except:
-                            arguments[i.arguments[j].name] = arg
-
-                    else: #Since we don't have all types setup right now just copy stuff we can't check. The command is responsible for handling these cases
-                        arguments[i.arguments[j].name] = arg
-
-                #set environment variables for external commands
-                i._setVariables(client, CONFIG_MANAGER, responseHandle, DATABASE_MANAGER, AUDIO_MANAGER)
-                #call command
-                try:
-                    await i.call(**arguments)
-                except BaseException as e:
-                    logging.exception("Command execution failed for " + i.name+": ")
-                    if CONFIG_MANAGER.getElementInt("bot.debug.showCommandErrors", 0, False):
-                        tb = chatutils.mdEscape(traceback.format_exc())
-                        await responseHandle.reply("Command execution failed for %s:\n %s\n\nYou are receiving this message because command debugging is enabled.\nIt can be disabled in the config files." % (i.name, tb), True)
-
-            responseHandle.close()
-            return #exit command handler
-
-    await responseHandle.reply(ICONS["error"]+" That command doesn't exist.", True) #if we don't find a command let the user know about it
-
 async def console_cb(reader, writer):
 
     """
@@ -1461,7 +1069,7 @@ async def console_cb(reader, writer):
 
     responseHandle = ResponseManager(reader=reader, writer=writer)
     try:
-        await process_command(responseHandle) #use our new interface | create ResponseManager
+        await processCommand(responseHandle, COMMANDS, CONFIG_MANAGER, client, DATABASE_MANAGER, AUDIO_MANAGER) #use our new interface | create ResponseManager
     except:
         #now that we are sending the responses via network to the caller we need to perform some cleanup in case shit goes sideways
         responseHandle.close()
@@ -1509,46 +1117,6 @@ async def autosave():
 
     AUTOSAVE_ACTIVE = False
 
-async def read_voice(connection):
-
-    """
-    EXPERIMENTAL FEATURE
-    Reads raw voice data from connection.
-    Since we have no idea what format these are in right now we just print shit to the screen and hope for the best.
-    """
-
-    logger = logging.getLogger("Voicecom")
-
-    if not connection.is_connected():
-        logger.error("Voice data logger could not be initialized: Voice connection not ready.")
-        return
-
-    name = str(connection.channel.name.encode(encoding="ASCII", errors="backslashreplace"), encoding="ASCII", errors="backslashreplace")
-
-    fo = open("logs/voice.log", "wb")
-    k = open("logs/key.log", "wb")
-    k.write(bytes(connection.secret_key))
-    k.close()
-
-    logger.debug("Voice data logger connected to " + name + "@" + connection.endpoint)
-
-    while True:
-        await asyncio.sleep(0.001) #add a minimal delay to keep the program responsive while we are logging
-        if not connection.is_connected():
-            fo.close()
-            break #voice connection is dead, exit
-        try:
-            data = connection.socket.recv(1024)
-
-        except TimeoutError:
-            continue
-        except BlockingIOError:
-            logger.debug("A voice packet has been dropped! (socket blocked while trying to execute non-blocking call)")
-            continue
-        if data:
-            fo.write(data)
-            logger.debug("Voice data received from " + name + "@" + connection.endpoint + ": " + str(data, encoding="ASCII", errors="backslashreplace"))
-
 #DISCORD EVENTS
 
 @client.event
@@ -1571,7 +1139,7 @@ async def on_ready():
     client.loop.create_task(autosave())
 
     #set playing state
-    await client.change_presence(game=GAME) #This doesn't work for some reason
+    await client.change_presence(game=GAME)
 
 @client.event
 async def on_message(msg):
@@ -1582,7 +1150,7 @@ async def on_message(msg):
 
     if msg.content.startswith(CMD_PREFIX) and not msg.author.id == client.user.id: #command detected | We don't want the bot to be able to input commands
         
-        await process_command(ResponseManager(client=client, msg=msg))
+        await processCommand(ResponseManager(client=client, msg=msg), COMMANDS, CONFIG_MANAGER, client, DATABASE_MANAGER, AUDIO_MANAGER)
 
     #Crashes Wacky Emoji Copy Pasta Warehouse And Emporium
     #elif msg.author.id == "125311707919679488":
@@ -1851,7 +1419,7 @@ try:
 
 #Everything not caught by the code in the while loop above is considered a critical error,
 #which means recovery is most likely impossible and will not be attempted.
-#In every case, the bot should attempt to shut down orderly to prevent data corruption and desync.
+#In any case, the bot should attempt to shut down orderly to prevent data corruption and desync.
 #Error handles may provide additional information on the issue that occured.
 
 except discord.LoginFailure as e: #for some reason we crashed. We'll just exit
@@ -1862,7 +1430,7 @@ except discord.LoginFailure as e: #for some reason we crashed. We'll just exit
 
 except Exception as e:
 
-    #catch exceptions, mainly WebSocket errors. We want the program to shut down properly so all cleanup functions get executed properly (and everything is saved)
+    #catch exceptions, mainly WebSocket errors. We want the program to shut down properly so all cleanup functions get executed (and everything is saved)
     logger.critical("Main loop crashed due to fatal error: " + str(e))
     logger.exception("Exception occured")
     logging.info("Shutting down...")

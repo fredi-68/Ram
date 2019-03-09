@@ -631,6 +631,8 @@ class DSLInterpreter():
             )
         for pair in ls:
             self.registerGlobalsCallback(pair[0], pair[1].getRandom)
+        
+        self.registerGlobalsCallback("bot_name", lambda: self.client.user.name)
 
     def _compileNumber(self, token):
 

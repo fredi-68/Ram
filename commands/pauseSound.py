@@ -10,7 +10,7 @@ class MyCommand(Command):
         self.aliases.append("unpause")
         self.desc = "Pauses/Unpauses the current sound. Works on all sounds."
         self.addArgument(Argument("server", CmdTypes.SERVER, True))
-        self.permissions.administrator = True
+        self.permissions.move_members = True
 
     async def call(self, server=None, **kwargs):
 

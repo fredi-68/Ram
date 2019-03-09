@@ -11,7 +11,7 @@ class MyCommand(Command):
         self.allowConsole = False
         self.addArgument(Argument("volume", CmdTypes.FLOAT, True))
         self.addArgument(Argument("server", CmdTypes.SERVER, True))
-        self.permissions.administrator = True
+        self.permissions.move_members = True
 
     async def call(self, volume=None, server=None, **kwargs):
 

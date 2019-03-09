@@ -19,6 +19,7 @@ import random
 import uuid
 import urllib
 import os
+import enum
 
 import discord
 
@@ -27,6 +28,12 @@ from version import S_TITLE_VERSION
 READ_BUFFER_SIZE = 1024
 DOWNLOAD_BUFFER_SIZE = 4096
 SAMPLE_WIDTH = 2
+
+class LoopMode(enum.Enum):
+
+    NONE = 0
+    SONG = 1
+    QUEUE = 2
 
 class AudioError(Exception):
 
@@ -45,6 +52,7 @@ class Sound():
 
         self.setVolume(volume)
         self.setPanning(panning)
+        self.setTransition(1)
         self.skippable = skippable
         self.is_paused = False
         self.is_dead = False
@@ -71,6 +79,18 @@ class Sound():
 
         self.volume = max(min(volume, 2.0), 0)
 
+    def setTransition(self, volume):
+
+        """
+        Used by the auto crossfade feature.
+        Sets the transition volume to the specified amount. The default is 1.
+        The transition volume works like an additional volume separate from the normal sound volume.
+        It should not be accessible to the user, use setVolume for all volume related actions.
+        volume should be a float between 0 (off) and 1 (unaltered).
+        """
+
+        self.transitionVolume = max(min(volume, 1.0), 0)
+
     def setPanning(self, panning):
 
         """
@@ -89,7 +109,9 @@ class Sound():
         """
 
         if self.volume != 1.0:
-            return audioop.mul(buf, SAMPLE_WIDTH, self.volume)
+            buf = audioop.mul(buf, SAMPLE_WIDTH, self.volume)
+        if self.transitionVolume != 1.0:
+            buf = audioop.mul(buf, SAMPLE_WIDTH, self.transitionVolume)
         return buf
 
     def doPanning(self, buf):
@@ -335,10 +357,13 @@ class ChannelStream():
         self.voice_client = voice_client
         self.volume = 1.0
         self.crossfade = False
+        self.crossfadeDuration = 5
+        self.crossfadeSamples = voice_client.encoder.sampling_rate * self.crossfadeDuration
         self._playing = []
         self._queue = collections.deque()
         self._player = None
         self.rmLock = threading.Lock()
+        self.loopMode = LoopMode.NONE
 
     def setVolume(self, volume):
 
@@ -454,8 +479,6 @@ class ChannelStream():
         next.play()
         self.refreshPlayer()
 
-        #The fuck is this about?
-        #print(self.read())
         return True
 
     def playSoundSynchroneous(self, sound):
