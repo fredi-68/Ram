@@ -43,6 +43,9 @@
     <Compile Include="cmdutils.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="commands\about.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="commands\addRole.py">
       <SubType>Code</SubType>
     </Compile>

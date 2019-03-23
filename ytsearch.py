@@ -26,7 +26,7 @@ class Search():
     """
     Abstract base class for search engines.
 
-    This class specifies an iterface for music search egines.
+    This class specifies an interface for music search egines.
     It also provides some shared functionality and object instances.
     """
 
@@ -57,7 +57,7 @@ class Search():
         keyword only arguments. All keyword arguments are considered optional.
         """
 
-        return []
+        return {}
 
 class YouTubeSearch(Search):
 

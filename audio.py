@@ -188,8 +188,8 @@ class FFMPEGSound(Sound):
     """
     Class representing an instance of FFMPEG playing a sound.
 
-    This implementation uses lazy ressource loading to save on memory and
-    prevent timeouts on remote ressources by only loading the stream right
+    This implementation uses lazy resource loading to save on memory and
+    prevent timeouts on remote resources by only loading the stream right
     before the sound starts playing.
 
     You need to have the FFMPEG executable in your path in order for
@@ -290,6 +290,15 @@ class WebResourceSound(FFMPEGSound):
     USER_AGENT = S_TITLE_VERSION
 
     def __init__(self, target, *args, **kwargs):
+
+        """
+        Create a new WebResourceSound instance.
+        ASYNCIO WARNING:
+        It is recommended to run this constructor using
+        an executor when calling from the main thread since
+        the resource download could take some time and
+        potentially stall the application.
+        """
 
         self._cleanup_done = False
 

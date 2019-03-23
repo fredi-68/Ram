@@ -1,3 +1,8 @@
+=======================================================
+COMMAND SYSTEM API DOCUMENTATION
+=======================================================
+
+
 This folder contains all external bot commands.
 These commands use a "plug and play like" system, meaning that they can be switched in and out without having to reconfigure the server - a simple reboot is enough. This is usefull for streamlining the command line interface towards certain use cases and helps to provide a simpler, cleaner command system.
 
@@ -32,9 +37,11 @@ Internal commands are loaded on startup, regardless of user configuration. If th
 
 This system has served me very well so far and I expect it to continue performing well for the goals I have with this bot.
 
-----------------------------------
+
+=======================================================
 BEFORE YOU START
-----------------------------------
+=======================================================
+
 
 Before starting work on custom commands, there are some things you may want to take care of first.
 
@@ -49,6 +56,17 @@ Now any time a command fails to execute properly, you will receive a message wit
 
 You will also want to familiarize yourself with the discord.py API, since a lot of the datatypes cmdsys uses are part of the library. There are also some things cmdsys cannot do, in which case
 discord.py usually has your back. The client instance is exposed through an attribute as well as the original message. More on this later.
+
+NEW IN VERSION 4.6+
+If you are running the newest version, you don't have to reboot the bot to apply changes made to your commands code. Simply change your source code and then run the +reloadCommands command.
+This will reload all external commands, including any changes made to the source file. This is usually much faster than restarting the bot completely. Note that if you are using code that is located in
+other modules or packages and this code was modified, you may still have to reboot the bot in order for your changes to take effect.
+
+
+=======================================================
+COMMAND SYSTEM API TUTORIAL
+=======================================================
+
 
 ----------------------------------
 THE COMMAND STRUCTURE
@@ -260,8 +278,14 @@ There is still a lot more of the API that is exposed by cmdsys.py and also by th
 
 If you still get stuck with something you can always check the commands I supplied with the bot. There are a bunch in the command folder already and you can examine or copy code to create new commands or figure out what is wrong with one you have already made. I didn't implement the API for fun after all, most if not all of the functions are used somewhere in those modules. So go ahead and have a look!
 
+
+=======================================================
+COMMAND SYSTEM API REFERENCE
+=======================================================
+
+
 ----------------------------------
-APPENDIX A: DATABASES AND DATA PERSISTENCE
+DATABASES AND DATA PERSISTENCE
 ----------------------------------
 
 With version 3.3, I introduced a new data persistency model using sqlite3: The DatabaseManager.
@@ -337,7 +361,7 @@ Neither DatabaseHandle nor DatabaseManager expose a clean up method to close ope
 The DatabaseManager and all related systems are NOT THREAD SAFE. You should thus avoid interacting with the database outside of the main thread. If you absolutely need to, consider setting up a server using asyncios integrated features to handle database access for your application.
 
 ----------------------------------
-APPENDIX B: CLEAN UP
+CLEAN UP
 ----------------------------------
 
 So, imagine the following scenario:
@@ -358,7 +382,7 @@ All clean up methods will be executed FIFO. However, there is no guarantee that 
 There is currently no guarantee that clean up handlers will be executed if the bot crashed. In fairness, the APIs may not be available in this scenario anyways.
 
 ----------------------------------
-APPENDIX C: DYNAMIC IMAGE CREATION AND MANIPULATION
+DYNAMIC IMAGE CREATION AND MANIPULATION
 ----------------------------------
 
 Again, imagine the following scenario:
@@ -379,7 +403,7 @@ The Image class exposes a number of methods that mimic the behaviour of the pyga
 To send the image off to discord you don't need to do anything, just pass the Image object to client.send_file() as the fp argument. imagelib will automatically convert your image into a PNG bytestream and send it to discord. To make it show up correctly, you should also specify a filename that ends with .png.
 
 ----------------------------------
-APPENDIX D: LOGGING
+LOGGING
 ----------------------------------
 
 If you want to log information as your command is doing its thing, there is a logger attached to each command available through Command.logger. Its name is automatically set to the commands name. This
@@ -391,3 +415,29 @@ for a server. If there is no such channel, the call does nothing.
 However, to keep the spam down you should limit logging to security relevant information only. What does that mean exactly? Basically any action that has an impact on one or multiple members experience.
 This includes things like timeouts, kicks, bans, changing role permissions, etc. Discord provides its own audit log by default, though you cannot write to it directly. Think of this feature as an
 expandable alternative to that system. Try to view your command from an administrators perspective: What would you want to see, what would you consider unimportant?
+
+----------------------------------
+AUDIO
+----------------------------------
+
+If you want to use Discords voice chat to play back some audio you can still use the discord.py backend to create and play back an audio stream using the provided API.
+However, doing so may interfere with other features of the bot also using the audio system, since only one audio source may ever be registered on the discord.py audio backend
+at any given time.
+To get around this, it is encouraged to use the integrated ProtOS Discord Bot Audio Subsystem, which is located at audio.py
+This API uses an object oriented design, focusing on different audio source types, which may be played back or queued on a channel. All the complicated work of managing the queue
+and mixing different sounds is abstracted away from the user for greater convenience.
+
+To use this API you will need to subclass audio.Sound, or use one of the provided classes. There are subclasses for creating FFMPEG streams or even downloading web resources completely
+automatic. The Sound API is described in more detail in the inline documentation of the audio.py module.
+
+To queue a sound, you may use the Command.playSound method. Note that this is not a coroutine, however, the call is still non-blocking since the sound playback will be managed in a
+different thread from the main application.
+The Command.playSound method takes three arguments: An audio.Sound instance representing the sound you wish to play, a channel instance of the voice channel you want the sound to be
+played on and a boolean specifying whether or not this sound should be played back synchronously or asynchronously.
+An asynchronous sound will be played by the audio system as soon as it becomes available, where as a synchronous sound will only start playback once the channel is free. Synchronous
+sounds are best used for audio that has a long duration or is meant to be played as part of a sequence. Asynchronous sounds are best used where response time matters.
+Synchronous sounds will be placed in a queue before their playback has started, which can be inspected by users using the +queue command.
+Since Asynchronous sounds never enter the queue, they are also not affected by advanced features such as looping/repeat modes.
+
+Note that if the bot is currently not connected to the voice channel you are requesting playback for, the call will fail with an exception. This is intended as it prevents sounds
+queued to different channels from interrupting playback and the bot moving between channels frequently.

@@ -993,7 +993,7 @@ AUTH_TOKEN = CONFIG_MANAGER.getElementText("bot.token") # <- important
 USERNAME = CONFIG_MANAGER.getElementText("bot.username")
 PASSWORD = CONFIG_MANAGER.getElementText("bot.password")
 
-GAME = discord.Game(name=version.S_VERSION) #We can set this later, just so we have something to display
+GAME = discord.Game(name="%s | %s%s" % (version.S_VERSION, CMD_PREFIX, "about")) #We can set this later, just so we have something to display
 
 #Voice related things
 SOUND_DIR = "sounds/"
