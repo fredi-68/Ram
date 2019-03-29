@@ -1,0 +1,15 @@
+{
+  "name": "FreDerp",
+  "source": "FreDerp.png",
+  "lines": [
+    {
+      "x": 24,
+      "y": 504,
+      "width": 552,
+      "height": 160,
+      "color": [255, 255, 255],
+      "draw_shadow": 1,
+      "shadow_color": [0, 0, 0]
+    }
+  ]
+}

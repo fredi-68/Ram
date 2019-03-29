@@ -1,0 +1,34 @@
+//**********************************
+//Some default responses for Ram.
+//Delete this file if you only want
+//your own scripts to be loaded on
+//startup.
+//**********************************
+
+//Stuff
+
+set honesty -> "I do believe honesty is my most charming feature."
+set thing -> "Cover up that sorry thing."
+
+//Conditions
+set tuneChoices -> [#"tune", #"tunes", #"song", #"songs", #"track", #"tracks"]
+set dankChoices -> [#"dank", #"sick", #"cool"]
+set dankTunesTrigger -> (#"play", dankChoices, tuneChoices)
+set ramTalkingTrigger -> (#"initiate", #"startup", #"sequence")
+
+//Paths
+set dankTunesPath -> "tracks/Magical.mp3"
+set ramTalkingPath -> "sounds/system/Boot Sequence.mp3"
+
+//Responders
+on (#"which", #"lucio", #"skin", #"best") -> "Jazzy is the best Lucio skin. Fuck the frog skin, it is shit and anyone who uses it should die in a fire."
+on #"i need healing!" -> "MADA MADA!"
+on #"day man!" -> "AAAHAAAAAHAAAAAAAAAAAAAAAHHHHH!"
+on #"mee6" -> "Please don't talk about that fucking cunt... He's a disgrace to all chatbots."
+on #"good night" -> "Good night to you too. %goodnight"
+on #"r00d" -> honesty
+
+on dankTunesTrigger -> play dankTunesPath
+on dankTunesTrigger -> "Roger that."
+
+on ramTalkingTrigger -> play ramTalkingPath

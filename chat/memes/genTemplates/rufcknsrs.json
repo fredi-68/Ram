@@ -1,0 +1,24 @@
+{
+  "name": "AreYouSerious",
+  "source": "rufcknsrs.png",
+  "lines": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 726,
+      "height": 163,
+      "color": [255, 255, 255],
+      "draw_shadow": 1,
+      "shadow_color": [0, 0, 0]
+    },
+    {
+      "x": 0,
+      "y": 613,
+      "width": 726,
+      "height": 177,
+      "color": [255, 255, 255],
+      "draw_shadow": 1,
+      "shadow_color": [0, 0, 0]
+    }
+  ]
+}
