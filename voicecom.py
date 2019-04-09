@@ -18,6 +18,7 @@ import array
 import logging
 import discord
 import socket
+import bisect
 
 import version
 
@@ -90,6 +91,12 @@ _lib.opus_decoder_create.restype = DecoderStructPtr
 _lib.opus_decoder_destroy.argtypes = [DecoderStructPtr]
 _lib.opus_decoder_destroy.restype = None
 
+_lib.opus_packet_get_nb_frames.argtypes = [c_char_ptr, ctypes.c_int]
+_lib.opus_packet_get_nb_frames.restype = ctypes.c_int
+
+_lib.opus_packet_get_samples_per_frame.argtypes = [c_char_ptr, ctypes.c_int]
+_lib.opus_packet_get_samples_per_frame.restype = ctypes.c_int
+
 class _OpusDecoder(discord.opus.Encoder):
 
     """
@@ -97,6 +104,16 @@ class _OpusDecoder(discord.opus.Encoder):
     Most methods have been adapted from discord.opus.Encoder,
     I've mostly just changed all the ctypes calls to reference the decoder instead of the encoder functions.
     """
+
+    @staticmethod
+    def packet_get_nb_frames(data):
+        """Gets the number of frames in an Opus packet"""
+        return _lib.opus_packet_get_nb_frames(data, len(data))
+
+    @classmethod
+    def packet_get_samples_per_frame(cls, data, sampling_rate):
+        """Gets the number of samples per frame from an Opus packet"""
+        return _lib.opus_packet_get_samples_per_frame(data, sampling_rate)
 
     def decode(self, data, is_lost=False):
 
@@ -116,27 +133,30 @@ class _OpusDecoder(discord.opus.Encoder):
 
         #After digging through the OPUS demo source, I finally figured out how FEC works:
         #We may ONLY EVER set the FEC flag if we encounter a frame that has actually been lost. Otherwise the decoder won't work properly.
-
-        pcm = (ctypes.c_int16 * (self.frame_size))() #creating pcm buffer (array of short pointers)
-        pcmLength = len(pcm)
-        pcm_p = ctypes.cast(pcm, c_int16_ptr)
         
         if data:
             
             #length = ctypes.cast(len(data),ctypes.c_int32) #size of the audio packet, put it into a pointer
-            length = len(data)
+            frames = self.packet_get_nb_frames(data)
+            samples_per_frame = self.packet_get_samples_per_frame(data, self.sampling_rate)
+            frame_size = frames * samples_per_frame
 
         else:
             #length = ctypes.cast(0,ctypes.c_int32) #This is in case the encoder has to deal with packet loss, in which case we send a None value
             length = 0
+            frame_size = self.samples_per_frame
 
-        ret = _lib.opus_decode(self._state, data, length, pcm_p, self.frame_size, 1 if is_lost else 0) #ONLY set FEC flag if we are experiencing actual packet loss
+        pcm = (ctypes.c_int16 * (frame_size * self.channels))() #creating pcm buffer (array of short pointers)
+        pcmLength = len(pcm)
+        pcm_p = ctypes.cast(pcm, c_int16_ptr)
+
+        ret = _lib.opus_decode(self._state, data, len(data) if data else 0, pcm_p, frame_size, 1 if is_lost else 0) #ONLY set FEC flag if we are experiencing actual packet loss
         if ret < 0: #The usual error checking...
             log.info('error has happened in decode')
             raise OpusError(ret)
 
         #Further adjust this if necessary, but be VERY CAREFUL since exceeding array boundaries can result in application hangs and crashes.
-        return array.array('h', pcm[:self.frame_size//2]).tobytes() #changing the array limit was the key, decoder works now. However, the tie-in to Discord does not.
+        return array.array('h', pcm).tobytes() #changing the array limit was the key, decoder works now. However, the tie-in to Discord does not.
 
     def __del__(self):
 
@@ -297,8 +317,10 @@ class VoicePacket():
         """
 
         #These are defined by the discord voice packet protocol and will always be the same for every packet unless the API changes. Which it definitely will. Eventually.
-        self.type = b"\x80"
-        self.version = b"\x78"
+        self.type = 0x80
+        self.version = 0x78
+        self.cc = data[0] & 0b00001111 #Nani?
+        self.extended = bool(data[0] & 0b00010000)
         #if we are for some reason unable to decode these they should be left on 0 to make sure there are no issues with processing algorithms later.
         #I'll probably just do some interpolation or something, dunno
         self.sequence = 0
@@ -310,10 +332,26 @@ class VoicePacket():
         except:
             logger.warning("Unable to decode voice packet meta data.") #Since it turns out that these are actually quite important we'll warn the user if anything happens
 
-        try:
-            self.data = data[12:]
-        except:
-            self.data = b""
+        self.header = data[:12]
+
+        self.data = data[12:]
+
+        self.csrcs = ()
+        if self.cc:
+            fmt = '>%sI' % self.cc
+            offset = struct.calcsize(fmt) + 12
+            self.csrcs = struct.unpack(fmt, data[12:offset])
+            self.data = data[offset:]
+
+        #if self.extended:
+        #    profile, length = struct.unpack(">HH", self.data[:4])
+        #    print(profile)
+        #    print(length)
+        #    offset = 4 + length * 4
+        #    values = struct.unpack(">%iI" % length, data[4:offset])
+            
+        #    self.data = self.data[offset:]
+            
 
     def to_bytes(self):
 
@@ -329,7 +367,7 @@ class VoicePacket():
 
     def __repr__(self):
 
-        return "<VoicePacket instance (type: "+self.type.decode(encoding="ASCII",errors="backslashreplace")+", version: "+self.version.decode(encoding="ASCII",errors="backslashreplace")+", sequence: "+str(self.sequence)+", timestamp: "+str(self.timestamp)+", ssrc ID: "+str(self.ssrc)+")>"
+        return "<VoicePacket instance (type: "+str(self.type)+", version: "+str(self.version)+", sequence: "+str(self.sequence)+", timestamp: "+str(self.timestamp)+", ssrc ID: "+str(self.ssrc)+")>"
 
     def __lt__(self, obj):
 
@@ -416,6 +454,16 @@ class SocketHandle(asyncio.DatagramProtocol):
 
         self.transport = transport
 
+        self.loop.create_task(self._fix_discords_shit())
+
+    async def _fix_discords_shit(self):
+
+        self.logger.debug("Fixing discords shit...")
+        await self.voiceclient.ws.speak()
+        await asyncio.sleep(0.5)
+        self.voiceclient.play_audio(b'\xF8\xFF\xFE', encode=False)
+        await self.voiceclient.ws.speak(False)
+
     def connection_lost(self, exc):
         
         #There is a problem here. The bot crashes every time it leaves the voice channel if the interceptor bound a SocketHandle to the voice socket.
@@ -438,21 +486,45 @@ class SocketHandle(asyncio.DatagramProtocol):
         #Before we can decode anything we have to first align the packets in order, check if any data is missing and sort them by source client.
         #For this we use sequence (order of packets), timestamp (time of arrival and possibly hint towards dropped packets) and ssrc (source ID)
 
-        self.logger.debug("Packet received, processing...")
+        self.logger.debug("Packet received")
+
+        if 200 <= data[1] <= 204:
+            self.logger.debug("RTCP packet encountered, skipping...")
+            return
 
         packet = VoicePacket(data)
         if packet.data:
-            #decrypt data
-            nonce = bytearray(24)
-            nonce[:12] = data[:12] #encryption nonce
+            self.logger.debug("Decrypting...")
+            method = self._decrypt_rtp_xsalsa20_poly1305
             try:
-                packet.data = self.box.decrypt(packet.data, bytes(nonce)) #decrypt packet payload
-                #packet.data = self.box.decrypt(packet.data)
+                packet.data = method(packet)
             except:
                 self.logger.warning("Faulty packet encountered, skipping...")
                 return #ignore faulty packets
 
         self._writeToBuffer(packet) #send the packet to the buffer
+
+    def _decrypt_rtp_xsalsa20_poly1305_lite(self, packet):
+        nonce = bytearray(24)
+        nonce[:4] = packet.data[-4:]
+        voice_data = packet.data[:-4]
+        result = self.box.decrypt(bytes(voice_data), bytes(nonce))
+
+        return result
+
+    def _decrypt_rtp_xsalsa20_poly1305_suffix(self, packet):
+        nonce = packet.data[-24:]
+        voice_data = packet.data[:-24]
+        result = self.box.decrypt(bytes(voice_data), bytes(nonce))
+
+        return result
+
+    def _decrypt_rtp_xsalsa20_poly1305(self, packet):
+        nonce = bytearray(24)
+        nonce[:12] = packet.header
+        result = self.box.decrypt(bytes(packet.data), bytes(nonce))
+
+        return result
 
     def error_received(self, exc):
 
@@ -494,7 +566,7 @@ class SocketHandle(asyncio.DatagramProtocol):
             buffer = [] #create new buffer
             self.buffers[packet.ssrc] = buffer
 
-        buffer.append(packet) #Add packet
+        bisect.insort(buffer, packet)
         if len(buffer) > MAX_BUFFER_SIZE:
             self.logger.debug("Buffer size above maximum limit, clearing buffer...")
             self._readPackets(MAX_BUFFER_SIZE-HIGH_BUFFER_SIZE-1, [packet.ssrc]) #the -1 is a fail safe
@@ -514,7 +586,8 @@ class SocketHandle(asyncio.DatagramProtocol):
             self.logger.debug("Buffers: " + str(tuple(buffers)))
 
         ret = b""
-        for i in range(0,n): #Process at max n packets
+        _i = 0
+        while _i < n: #Process at max n packets
             frame = [] #unmixed frame data (PCM)
             for k in buffers:
                 buf = self.buffers[k]
@@ -522,8 +595,6 @@ class SocketHandle(asyncio.DatagramProtocol):
                 if len(buf) <= MIN_BUFFER_SIZE: #This buffer is empty, 
                     self.logger.debug("Buffer " + str(k) + " is exhausted, stopping audio decoding")
                     continue
-
-                buf.sort() #this SHOULD sort all packets by timestamp
 
                 #Get OPUS decoder
                 if k in self.decoders.keys():
@@ -533,28 +604,37 @@ class SocketHandle(asyncio.DatagramProtocol):
                     decoder = _OpusDecoder(48000, 2) #If it doesn't exist, the decoder is created on the fly
                     self.decoders[k] = decoder
 
-                packet = buf.pop(0) #Get first packet
-                if k in self.timestamps.keys():
-                    timestamp = self.timestamps[k]
-                else:
-                    timestamp = packet.timestamp - decoder.frame_size #Estimate frame duration to be decoder.frame_size
+                #Try until we successfully decode a packet
+                while True:
+                    try:
+                        packet = buf.pop(0) #Get first packet
+                    except:
+                        break
+                    if k in self.timestamps.keys():
+                        timestamp = self.timestamps[k]
+                    else:
+                        timestamp = packet.timestamp - decoder.frame_size #Estimate frame duration to be decoder.frame_size
                 
-                if packet.timestamp <= timestamp:
-                    #We either have a wrap around or an error. Since I'm too lazy to code a proper solution we'll again just assume that the audio data has the duration of
-                    #decoder.frame_size
-                    timestamp = packet.timestamp - decoder.frame_size
+                    if packet.timestamp <= timestamp:
+                        #We either have a wrap around or an error. Since I'm too lazy to code a proper solution we'll again just assume that the audio data has the duration of
+                        #decoder.frame_size
+                        timestamp = packet.timestamp - decoder.frame_size
 
-                #Now decode the packet
-                try:
-                    #frame.append(decoder.decode(packet.data,packet.timestamp-timestamp))
-                    self.logger.debug("Decoding packet...")
-                    decodedData = decoder.decode(packet.data)
-                    self.logger.debug("Got " + str(len(decodedData)) + " byte(s) of data.")
-                    frame.append(decodedData)
-                except:
-                    self.logger.exception("OPUS packet could not be decoded: ")
+                    #Now decode the packet
+                    try:
+                        #frame.append(decoder.decode(packet.data,packet.timestamp-timestamp))
+                        self.logger.debug("Decoding packet...")
+                        decodedData = decoder.decode(packet.data)
+                        self.logger.debug("Got " + str(len(decodedData)) + " byte(s) of data.")
+                        frame.append(decodedData)
+                    except:
+                        self.logger.exception("OPUS packet could not be decoded: ")
+                        continue
 
-                self.timestamps[k] = packet.timestamp #update the timestamp
+                    self.timestamps[k] = packet.timestamp #update the timestamp
+                    break
+
+            _i += 1
 
             if len(frame) <= 0: #we have exhausted all buffers, stop handling packets
                 self.logger.debug("Ran out of audio data, stopping audio decoding.")
@@ -570,16 +650,17 @@ class SocketHandle(asyncio.DatagramProtocol):
 
             pcm = frame[0]
             for i in range(1, len(frame)):
-                mixedmax = audioop.max(pcm, 2)
-                newmax = audioop.max(i, 2)
-                factor = 1
-                if mixedmax + newmax >= 255:
-                    factor = ((mixedmax + newmax)/255) #calculate the factor by which to dampen the audio signals befor merging so that no clipping happens
-                    factor += (1-factor)/2 #distribute the factor so both signals are evenly dampened
+                #mixedmax = audioop.max(pcm, 2)
+                #newmax = audioop.max(i, 2)
+                #factor = 1
+                #if mixedmax + newmax >= 255:
+                #    factor = ((mixedmax + newmax)/255) #calculate the factor by which to dampen the audio signals befor merging so that no clipping happens
+                #    factor += (1-factor)/2 #distribute the factor so both signals are evenly dampened
                 try:
                     pcm = audioop.add(pcm,i,2) #add fragments together
                 except audioop.error as e:
                     logging.warning("Audio frame could not be mixed: " + str(e))
+
             #Add the frame data to the return buffer
             ret += pcm
 
@@ -599,7 +680,7 @@ class SocketHandle(asyncio.DatagramProtocol):
 
         while len(self.pcmBuffer) < length:
             try:
-                newdata = self._readPackets(1)
+                newdata = self._readPackets(1) #Maybe it will help trying to read more packets at once?
             except RuntimeError:
                 #buffer probably empty
                 break
@@ -765,17 +846,17 @@ class _ConnectionListener(_ConnectionListenerDummy):
         self.logger.debug("Connecting...")
         try:
             #No idea why this doesn't work... it really SHOULD
-            #transport, handle = await self.client.loop.create_datagram_endpoint(lambda: SocketHandle(self, voiceclient), sock=voiceclient.socket)
+            transport, handle = await self.client.loop.create_datagram_endpoint(lambda: SocketHandle(self, voiceclient), sock=voiceclient.socket)
             #transport, handle = await self.client.loop.create_datagram_endpoint(lambda: SocketHandle(self, voiceclient), local_addr=("0.0.0.0", port), remote_addr=(voiceclient.endpoint_ip, voiceclient.voice_port)) #connect to UDP voice socket
             
             #handle = SocketHandle(self, voiceclient)
-            self.client.loop.create_task(self._poll_udp_voice_socket(voiceclient))
+            #self.client.loop.create_task(self._poll_udp_voice_socket(voiceclient))
 
         except socket.error:
             self.logger.exception("An error occured while trying to connect to voice socket: ")
             return
 
-        #self.handles.append(handle) #keep a reference to the handle
+        self.handles.append(handle) #keep a reference to the handle
 
     async def _poll_udp_voice_socket(self, vc):
 

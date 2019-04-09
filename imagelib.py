@@ -412,7 +412,7 @@ class Image(io.RawIOBase):
 
             self._surf.blit(font.render(lines[i][0], 1, color), [area[0]+xoffset, area[1]+i*size])
 
-    def _extrude(self, surf, width=1):
+    def _extrude(self, surf, width=1, sides=15):
 
         """
         Extrude the objects in the surface by the specified width.
@@ -422,13 +422,23 @@ class Image(io.RawIOBase):
         This is particularly useful to draw drop shadows for objects such as
         text lines.
         The width argument specifies how many iterations are computed.
+        sides is a bitmask specifying which sides the drop shadow is rendered for.
+        The bits are read as follows:
+         1 << 0: up
+         1 << 1: down
+         1 << 2: left
+         1 << 3: right
         """
 
         for i in range(width):
 
+        if sides & 2:
             surf.blit(surf, (0, 1), special_flags=pygame.BLEND_RGBA_MAX)
+        if sides & 1:
             surf.blit(surf, (0, -1), special_flags=pygame.BLEND_RGBA_MAX)
+        if sides & 8
             surf.blit(surf, (1, 0), special_flags=pygame.BLEND_RGBA_MAX)
+        if sides & 4
             surf.blit(surf, (-1, 0), special_flags=pygame.BLEND_RGBA_MAX)
 
         return surf

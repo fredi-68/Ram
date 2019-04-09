@@ -499,7 +499,8 @@ class FileRecorder():
         self.file = wave.open(file,"wb")
         self.channel = channel
         self._recording = False
-        self.bufferSize = 1024 #may be a little small but we'll see
+        self.bufferSize = 10000 #may be a little small but we'll see
+        self.pollRate = 0.1
 
         self.listener = listener
 
@@ -541,7 +542,7 @@ class FileRecorder():
             except ValueError:
                 self.logger.error("Channel not found, stopping recording")
                 break #channel doesn't exist, stop recording
-            await asyncio.sleep(0.01) #add minimal delay to ensure that the program stays responsive
+            await asyncio.sleep(self.pollRate) #add minimal delay to ensure that the program stays responsive
 
         #recording finished
         self.logger.info("Recording finished, cleaning up...")
