@@ -95,7 +95,7 @@ class MyCommand(Command):
                     img.writeText((line["x"], line["y"], line["width"], line["height"]), text, line["color"], None, draw_shadows=line.get("draw_shadow", 0), shadow_color=line.get("shadow_color", (0, 0, 0)))
 
                 self.logger.debug("Uploading...")
-                await self.client.send_file(self.msg.channel, fp=img, filename=img.name, content="Here is your meme: ")
+                await self.msg.channel.send("Here is your meme: ", file=discord.File(img, img.name))
                 return
 
         await self.respond("That template doesn't exist.", True)

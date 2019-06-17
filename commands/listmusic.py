@@ -16,6 +16,8 @@ class MyCommand(Command):
         dir = os.listdir("tracks")
         s = "Track list: \n\n"
         for i in dir:
+            if i.lower().startswith("noindex"):
+                continue
             s += i+"\n"
         s += "\nInput files without file name extensions. Filenames are NOT case sensitive."
         await self.respond(s)

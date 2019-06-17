@@ -25,6 +25,9 @@
     <Compile Include="audio.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="brianCS\enums.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="brianCS\model.py">
       <SubType>Code</SubType>
     </Compile>

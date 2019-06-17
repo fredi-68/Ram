@@ -6,12 +6,14 @@
 
 import asyncio
 import logging
+import functools as ft
 
 from brianCS import BrianModel
+from brianCS.enums import *
 HAS_GASSIST = True
 try: #GAssist package is optional
     import gassist #urgh...
-except ImportError:
+except:
     HAS_GASSIST = False
 
 class ConversationSimulator():
@@ -319,6 +321,10 @@ class BrianCS(ConversationSimulator):
                 raise RuntimeError("Must be greater or equal to 0")
             return x
 
+        def enum_name(enum, x):
+
+            return enum._member_map_[x]
+
         def not_implemented(x=None):
 
             raise NotImplementedError("This option does not support this operation.")
@@ -333,7 +339,10 @@ class BrianCS(ConversationSimulator):
             "context_bias": [self.getContextBias, self.setContextBias, positive_float],
             "dropout_chance": [self.getDropoutChance, self.setDropoutChance, positive_float],
             "max_predictions": [self.getMaxPredictions, self.setMaxPredictions, positive_nz],
-            "prediction_time": [self.getPredictionTime, self.setPredictionTime, positive_float]
+            "prediction_time": [self.getPredictionTime, self.setPredictionTime, positive_float],
+            "dropout_factor": [self.getDropoutFactor, self.setDropoutFactor, positive_float],
+            "dropout": [self.getDropout, self.setDropout, ft.partial(enum_name, Dropout)],
+            "dropout_curve": [self.getDropoutCurve, self.setDropoutCurve, ft.partial(enum_name, DropoutCurve)]
             }
 
     def addToBlacklist(self, name):
@@ -376,6 +385,24 @@ class BrianCS(ConversationSimulator):
     def setPredictionTime(self, t):
         self.model.prediction_time = t
 
+    def getDropoutFactor(self):
+        return self.model.dropout_factor
+
+    def setDropoutFactor(self, t):
+        self.model.dropout_factor = t
+
+    def getDropout(self):
+        return self.model.dropout
+
+    def setDropout(self, t):
+        self.model.dropout = t
+
+    def getDropoutCurve(self):
+        return self.model.dropout_curve
+
+    def setDropoutCurve(self, t):
+        self.model.dropout_curve = t
+
     def load(self, path=None):
 
         if not path:
@@ -394,8 +421,8 @@ class BrianCS(ConversationSimulator):
         Prepares a chat message for export to the AI process via local IPv4 loopback
         """
 
-        s = msg.content.replace("<@" + self.client.user.id + ">", "") #make sure the bot mention doesn't show up if it was input
-        s = s.replace("<@!" + self.client.user.id + ">", "") #secondary mention format
+        s = msg.content.replace("<@" + str(self.client.user.id) + ">", "") #make sure the bot mention doesn't show up if it was input
+        s = s.replace("<@!" + str(self.client.user.id) + ">", "") #secondary mention format
         s = s.lstrip(" ,") #Do this last so there aren't any unnecessary spaces left
 
         if not s: #we deleted everything... WELL

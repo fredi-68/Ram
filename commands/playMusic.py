@@ -72,12 +72,12 @@ class MyCommand(Command):
             url, title = items[i]
             e.add_field(name="Result %i: %s" % (i, title), value=url, inline=False)
         e.set_footer(text="Select a track from the list above by clicking the corresponding reaction below this post.")
-        msg = await self.client.send_message(self.msg.channel, None, embed=e) #we have to use the long version here, because we need access to the message
+        msg = await self.msg.channel.send(None, embed=e) #we have to use the long version here, because we need access to the message
 
         #Add reactions to the message to identify the track
         reactions = list(SELECT_EMOTES.keys())
         for i in range(len(results)):
-            await self.client.add_reaction(msg, reactions[i])
+            await msg.add_reaction(reactions[i])
             if i < len(results) - 1:
                 await asyncio.sleep(0.25) #avoid being rate limited if possible
 
@@ -100,9 +100,9 @@ class MyCommand(Command):
         #That is, unless we find a way to accessing a new copy of the message somehow...)
         for i in msg.reactions:
             try:
-                await self.client.remove_reaction(msg, i, client.user)
+                await msg.remove_reaction(i, client.user)
             except discord.DiscordException:
-                pass
+                self.logger.exception("Failed to remove reaction:")
 
         if index < 0 or index > len(results) - 1:
             await self.respond("Error: Index out of bounds", True)
@@ -114,11 +114,11 @@ class MyCommand(Command):
 
         loop = asyncio.get_event_loop()
 
-        if not (hasattr(self.msg.server, "voice_client") and self.msg.server.voice_client):
+        if not (hasattr(self.msg.guild, "voice_client") and self.msg.guild.voice_client):
             await self.respond("I'm currently not in a voice channel on this server.", True)
             return
 
-        targetChannel = self.msg.server.voice_client.channel
+        targetChannel = self.msg.guild.voice_client.channel
 
         #LOCAL MUSIC FILES
 

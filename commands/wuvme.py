@@ -12,7 +12,7 @@ class MyCommand(Command):
     async def call(self, **kwargs):
 
         try:
-            await self.client.change_nickname(self.msg.author, "Wuv")
+            await self.msg.author.edit(nick="Wuv")
         except discord.Forbidden:
             await self.respond("Sorry, I can't do that.", True)
             return

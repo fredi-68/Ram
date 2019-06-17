@@ -1,4 +1,4 @@
-﻿#Discord ProtOS Bot
+#Discord ProtOS Bot
 #
 #Author: fredi_68
 #
@@ -585,7 +585,7 @@ class DSLInterpreter():
             return
 
         try:
-            vc = message.server.voice_client
+            vc = message.guild.voice_client
             channel = vc.channel
         except AttributeError:
             return #This is easier than LBYL
@@ -825,7 +825,7 @@ class DSLInterpreter():
                         return True
 
                     else:
-                        raise DSLError("Wrong value for first action, must be 'play'")
+                        raise DSLError("Wrong value for first action, must be 'play' or 'react'.")
 
             elif len(action) > 2:
                 raise DSLError("Too many actions for command on: Expected at most 2 but was %i" % len(action))

@@ -20,13 +20,13 @@ class MyCommand(Command):
             if not self.msg:
                 await self.respond("You need to specify a server when setting volume from console.")
                 return
-            server = self.msg.server
+            server = self.msg.guild
 
         if not (hasattr(server, "voice_client") and server.voice_client):
             await self.respond("I'm currently not in a voice channel on this server.", True)
             return
 
-        db = self.db.getServer(self.msg.server.id)
+        db = self.db.getServer(server.id)
         db.createTableIfNotExists("voiceClientSettings", {"name": "text", "value": "text"})
         ds = db.createDatasetIfNotExists("voiceClientSettings", {"name": "volume"})
 

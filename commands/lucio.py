@@ -16,11 +16,11 @@ class MyCommand(Command):
 
     async def call(self, **kwargs):
 
-        if not (hasattr(self.msg.server, "voice_client") and self.msg.server.voice_client):
+        if not (hasattr(self.msg.guild, "voice_client") and self.msg.guild.voice_client):
             await self.respond("I'm currently not in a voice channel on this server.",True)
             return
 
         dir = os.listdir(SOUND_DIR+"lucio")
         line = random.choice(dir)
         sound = FFMPEGSound(SOUND_DIR+"lucio/"+line)
-        self.playSound(sound, self.msg.server.voice_client.channel, False)
+        self.playSound(sound, self.msg.guild.voice_client.channel, False)

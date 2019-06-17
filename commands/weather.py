@@ -34,11 +34,13 @@ If ommitted, this defaults to `embed`."""
 
     def _text2percent(self, text):
 
+        if text in ("-", "", " "):
+            return -1
         return int(text[:-1])/100
 
     def _dist2m(self, dist):
 
-        if dist == "-":
+        if dist in ("-", "", " "):
             return -1
 
         if dist.startswith(">") or dist.startswith("<"):
@@ -323,4 +325,4 @@ If ommitted, this defaults to `embed`."""
         else:
 
             graph = self.makeGraphView(table)
-            await self.client.send_file(self.msg.channel, fp=graph, filename=graph.name, content="Weather Report :partly_sunny:")
+            await self.msg.channel.send(file=discord.File(graph, graph.name), content="Weather Report :partly_sunny:")

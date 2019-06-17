@@ -15,10 +15,10 @@ class MyCommand(Command):
     async def call(self, channel=None, **kwargs):
 
         if not channel:
-            if not self.msg.author.voice_channel:
+            if not self.msg.author.voice.channel:
                 await self.respond("You are not in a voice channel. Please specify a channel for me to connect to.", True)
                 return
-            channel = self.msg.author.voice_channel
+            channel = self.msg.author.voice.channel
 
         try:
             playing = self.audioManager.getPlaying(channel)

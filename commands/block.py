@@ -19,7 +19,7 @@ class MyCommand(Command):
             await self.respond("Not a valid member.")
             return
 
-        if self.config.getElementText("bot.owner", "") == member.id:
+        if self.config.getElementInt("bot.owner", -1) == member.id:
             await self.respond("You can't block the bot owner!", True)
             return
 
@@ -31,5 +31,5 @@ class MyCommand(Command):
             return
 
         ds.update() #block user
-        await self.respond("Successfully blocked user " + member.name + " (" + member.id + ")", True)
+        await self.respond("Successfully blocked user " + member.name + " (" + str(member.id) + ")", True)
         return

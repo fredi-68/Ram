@@ -20,7 +20,7 @@ class MyCommand(Command):
             return
         f = open(filename, "rb") #open image file for binary data transfer
         try:
-            await self.client.edit_profile(avatar=f.read()) #we don't buffer things which is probably bad
+            await self.client.user.edit(avatar=f.read()) #we don't buffer things which is probably bad
             #wait for image to upload
         except discord.InvalidArgument:
             await self.respond("Image format not recognized.", True) #well fuck this should never happen

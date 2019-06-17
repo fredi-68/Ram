@@ -18,11 +18,11 @@ class MyCommand(Command):
             await self.respond("Not a valid role identifier.", True)
             return
 
-        db = self.db.getServer(role.server.id) #get the server database for this channel (may be a different server than the caller)
+        db = self.db.getServer(role.guild.id) #get the server database for this channel (may be a different server than the caller)
         dsList = db.enumerateDatasets("timeoutRole")
         for i in dsList:
             i.delete()
-        ds = db.createDatasetIfNotExists("timeoutRole", {"roleID":role.id})
+        ds = db.createDatasetIfNotExists("timeoutRole", {"roleID": role.id})
         ds.update()
 
         await self.respond("successfully changed timeout role to %s" % role.name)

@@ -25,7 +25,7 @@ class MyCommand(Command):
 
     async def call(self, index=0, flags="", **kwargs):
 
-        server = self.msg.server
+        server = self.msg.guild
         force = False
 
         if not (hasattr(server, "voice_client") and server.voice_client):

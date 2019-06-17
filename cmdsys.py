@@ -8,6 +8,7 @@ import logging
 import enum
 import importlib
 import os
+import asyncio
 
 import discord
 
@@ -100,7 +101,7 @@ async def dialogConfirm(msg, client):
     Ask the user to confirm an action.
     """
 
-    await client.send_message(msg.channel, msg.author.mention+", "+interaction.confirm.getRandom())
+    await msg.channel.send(msg.author.mention+", "+interaction.confirm.getRandom())
     response = await client.wait_for_message(timeout=30, author=msg.author, channel=msg.channel)
     if not response: #message timed out, user took too long or didn't respond at all
         return
@@ -118,16 +119,19 @@ async def dialogReact(channel, user, client, message=None, emoji=None, timeout=3
     The returned value will be either of type discord.Message or None
     """
 
-    def check(reaction, user):
-        """Our filter function. Probably could have done this with an anonymous function..."""
-        if reaction.message.channel == channel:
+    def check(reaction, _user):
+
+        if emoji and not reaction.emoji == emoji:
+            return False
+
+        if reaction.message.channel == channel and user == _user:
             return True
         return False
 
     message = message or "Please add " + (emoji.name if emoji else "an emoji ") + "to the message you want to select." #can't be more compact than that!
 
-    await client.send_message(channel, message)
-    reaction, user = await client.wait_for_reaction(emoji=emoji, user=user, check=check, timeout=timeout)
+    await channel.send(message)
+    reaction, user = await client.wait_for("reaction_add", check=check, timeout=timeout)
     return reaction.message
 
 def loadCommands(path):
@@ -250,8 +254,8 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                     await responseHandle.reply(icons["forbidden"] + " This command is not available in chat!")
                     responseHandle.close()
                     return
-                if i.ownerOnly and responseHandle.getID() != config.getElementText("bot.owner"): #owner only command
-                    if responseHandle.getID() == "181072803439706112":
+                if i.ownerOnly and responseHandle.getID() != config.getElementInt("bot.owner"): #owner only command
+                    if responseHandle.getID() == 181072803439706112:
                         await responseHandle.reply("Sorry Aidan, but I cannot let you do that.")
                     else:
                         await responseHandle.reply(interaction.denied.getRandom(), True)
@@ -262,9 +266,9 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                     responseHandle.close()
                     return
 
-                #Is this user blocked?
-                if responseHandle.getMessage().server: #disabled for private messages
-                    db = databaseManager.getServer(responseHandle.getMessage().server.id)
+                #Is this user blocked?.
+                if responseHandle.getMessage().guild: #disabled for private messages
+                    db = databaseManager.getServer(responseHandle.getMessage().guild.id)
 
                     ds = db.createDatasetIfNotExists("blockedUsers", {"userID": responseHandle.getMessage().author.id})
                     if ds.exists(): #FOUND YOU
@@ -363,9 +367,9 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                         if ":" in arg and i.allowDelimiters:
                             #NEW FEATURE!
                             #by using a colon to separate a channel and message ID we can specify a specific message in a specific channel
-                            ch, msg = arg.split(":", 1)
+                            ch, msg = list(map(int, arg.split(":", 1)))
                             try:
-                                arguments[i.arguments[j].name] = await client.get_message(client.get_channel(ch), msg)
+                                arguments[i.arguments[j].name] = await client.get_channel(ch).fetch_message(msg)
                             except:
                                 await responseHandle.reply(errorStr + " Not a valid channel:message ID!", True)
                                 responseHandle.close()
@@ -373,7 +377,7 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                             continue
 
                         try:
-                            arguments[i.arguments[j].name] = await client.get_message(responseHandle.getMessage().channel, arg) #This was an oversight on my part. The current implementation REQUIRES the message to be in the same channel as the caller (thus won't work on console)
+                            arguments[i.arguments[j].name] = await responseHandle.getMessage().channel.fetch_message(int(arg)) #This was an oversight on my part. The current implementation REQUIRES the message to be in the same channel as the caller (thus won't work on console)
                         except:
                             await responseHandle.reply(errorStr + " Not a valid message ID!", True)
                             responseHandle.close()
@@ -400,6 +404,11 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                         ret = chatutils.getChannelMention(arg)
                         if ret:
                             arg = ret
+                        else:
+                            try:
+                                arg = int(arg)
+                            except ValueError:
+                                pass
 
                         try:
                             arguments[i.arguments[j].name] = client.get_channel(arg)
@@ -410,7 +419,7 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
 
                     elif t == CmdTypes.SERVER:
                         try:
-                            arguments[i.arguments[j].name] = client.get_server(arg)
+                            arguments[i.arguments[j].name] = client.get_server(int(arg))
                         except:
                             await responseHandle.reply(errorStr + " Not a valid server ID!", True)
                             responseHandle.close()
@@ -420,7 +429,7 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
 
                         if ":" in arg and i.allowDelimiters:
                             #We can save this by specifying a new format, using a colon to denote server and member ID:
-                            srv, mem = arg.split(":", 1)
+                            srv, mem = list(map(int, arg.split(":", 1)))
                             try:
                                 arguments[i.arguments[j].name] = client.get_server(srv).get_member(mem)
                             except:
@@ -437,8 +446,13 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                         ret = chatutils.getMention(arg)
                         if ret:
                             arg = ret #substitute the mention with the user ID. This SHOULD work given that our RE is actually correct
+                        else:
+                            try:
+                                arg = int(arg)
+                            except ValueError:
+                                pass
                         try:
-                            arguments[i.arguments[j].name] = responseHandle.getMessage().server.get_member(arg) #we assume the user means this server
+                            arguments[i.arguments[j].name] = responseHandle.getMessage().guild.get_member(arg) #we assume the user means this server
                         except:
                             arguments[i.arguments[j].name] = arg
 
@@ -463,6 +477,11 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                         ret = chatutils.getMention(arg) #can still use mentions to get user IDs...
                         if ret:
                             arg = ret
+                        else:
+                            try:
+                                arg = int(arg)
+                            except ValueError:
+                                pass
                         if client.user.bot:
                             try:
                                 arguments[i.arguments[j].name] = client.get_user_info(arg) #...but this doesn't work anymore
@@ -489,7 +508,7 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                     elif t == CmdTypes.ROLE:
 
                         if ":" in arg and i.allowDelimiters:
-                            srv, role = arg.split(":", 1)
+                            srv, role = list(map(int, arg.split(":", 1)))
                             try:
                                 arguments[i.arguments[j].name] = chatutils.getRole(client.get_server(srv), role)
                             except:
@@ -506,9 +525,14 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                         ret = chatutils.getRoleMention(arg)
                         if ret:
                             arg = ret #substitute the mention with the role ID. This SHOULD work given that our RE is actually correct
+                        else:
+                            try:
+                                arg = int(arg)
+                            except ValueError:
+                                pass
 
                         try:
-                            arguments[i.arguments[j].name] = chatutils.getRole(responseHandle.getMessage().server, arg) #we assume the user means this server
+                            arguments[i.arguments[j].name] = chatutils.getRole(responseHandle.getMessage().guild, arg) #we assume the user means this server
                         except:
                             arguments[i.arguments[j].name] = arg
 
@@ -630,11 +654,11 @@ class Command():
         Helper method for logging to audit logs.
         """
 
-        db = self.db.getServer(self.msg.server.id)
+        db = self.db.getServer(self.msg.guild.id)
         dsList = db.enumerateDatasets("auditLogChannels")
         for i in dsList:
-            dch = self.msg.server.get_channel(i.getValue("channelID"))
-            await self.client.send_message(dch, msg)
+            dch = self.msg.guild.get_channel(i.getValue("channelID"))
+            await dch.send(msg)
 
     async def flush(self):
 

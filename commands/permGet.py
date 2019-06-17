@@ -23,6 +23,6 @@ class MyCommand(Command):
             await self.respond(s)
         else:
             s = "Permissions for '"+member.name+"' on '"+server.name+"':\n\n"
-            for i in member.server_permissions:
+            for i in member.guild_permissions:
                 s += "  "+i[0]+": "+str(i[1])+"\n"
             await self.respond(s)

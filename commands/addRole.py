@@ -3,7 +3,7 @@ from cmdsys import *
 
 #TODO: Make this use the database instead
 WHITELISTED_ROLE_IDS = [
-    "383998414225932288"
+    383998414225932288
     ]
 
 class MyCommand(Command):
@@ -18,7 +18,7 @@ class MyCommand(Command):
 
     async def call(self, role, **kwargs):
 
-        for i in self.msg.server.roles:
+        for i in self.msg.guild.roles:
             if i.name == role and i.id in WHITELISTED_ROLE_IDS:
                 role = i
 
@@ -27,7 +27,7 @@ class MyCommand(Command):
             return
 
         try:
-            await self.client.add_roles(self.msg.author, role)
+            await self.msg.author.add_roles(role)
         except discord.DiscordException:
             await self.respond("An error occured while assigning roles. Perhaps you have already been assigned this role?", True)
             return

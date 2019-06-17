@@ -13,6 +13,6 @@ class MyCommand(Command):
 
     async def call(self, **kwargs):
 
-        count = len(await self.client.pins_from(self.msg.channel)) #get the amount of pins in the current channel
+        count = len(await self.msg.channel.pins()) #get the amount of pins in the current channel
         percentage = 100*(count/MAX_PINS)
-        await self.respond("Pins used for channel %s: %i/%i (%.1f%%)") % (self.msg.channel.name, count, MAX_PINS, percentage)
+        await self.respond("Pins used for channel %s: %i/%i (%.1f%%)" % (self.msg.channel.name, count, MAX_PINS, percentage))

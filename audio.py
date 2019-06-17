@@ -22,6 +22,7 @@ import os
 import enum
 
 import discord
+from discord.player import AudioPlayer
 
 from version import S_TITLE_VERSION
 
@@ -244,8 +245,8 @@ class FFMPEGSound(Sound):
 
         self.logger.debug("Preparing FFMPEG sound to play on channel %s..." % channel.voice_client.channel.name)
         encoder = channel.voice_client.encoder
-        self._probe_target(encoder.sampling_rate, encoder.channels)
-        self.process = self._create_player(encoder.sampling_rate, encoder.channels)
+        self._probe_target(encoder.SAMPLING_RATE, encoder.CHANNELS)
+        self.process = self._create_player(encoder.SAMPLING_RATE, encoder.CHANNELS)
 
     def play(self):
 
@@ -351,11 +352,15 @@ class WebResourceSound(FFMPEGSound):
                 self.logger.warn("Unable to remove temporary local audio file: %s" % str(e))
             self._cleanup_done = True
 
-class ChannelStream():
+class ChannelStream(discord.AudioSource):
 
     """
     Single channel of audio playback
     This class manages one channel of audio playback and it's associated voice client.
+
+    ChannelStream inherits from discord.AudioSource because it is needed for the underlying
+    audio player to function properly (since this code has to circumvent discord.py's own
+    audio system to a degree).
     """
 
     logger = logging.getLogger("AudioEngine.Channel")
@@ -367,7 +372,7 @@ class ChannelStream():
         self.volume = 1.0
         self.crossfade = False
         self.crossfadeDuration = 5
-        self.crossfadeSamples = voice_client.encoder.sampling_rate * self.crossfadeDuration
+        self.crossfadeSamples = voice_client.encoder.SAMPLING_RATE * self.crossfadeDuration
         self._playing = []
         self._queue = collections.deque()
         self._player = None
@@ -396,7 +401,7 @@ class ChannelStream():
             else:
                 self._player.resume()
 
-    def after(self):
+    def after(self, error):
 
         self.cleanUp()
         self.refreshPlayer()
@@ -413,8 +418,11 @@ class ChannelStream():
             if len(self._queue) < 1:
                 return
 
-        if not self._player or self._player.is_done():
-            self._player = self.voice_client.create_stream_player(self, after=self.after)
+        if (not self._player) or self._player._end.is_set():
+            #here we hack into the discord.py voice client to get the AudioPlayer object,
+            #which is necessary for our channel stream to control audio playback.
+            self._player = AudioPlayer(self, self.voice_client, after=self.after)
+            self.voice_client._player = self._player
             self._player.start()
 
     def cleanUp(self):
@@ -544,11 +552,14 @@ class ChannelStream():
 
         return len(self._queue) > 0 or len(self._playing) > 0
 
-    def read(self, n=READ_BUFFER_SIZE):
+    def read(self, n=-1):
 
         """
         Reads up to n bytes from the currently playing sound objects and return as a PCM stream.
         """
+
+        if n < 1:
+            n = self.voice_client.encoder.FRAME_SIZE
 
         buffer = b""
 
@@ -659,7 +670,7 @@ class AudioManager():
             return self._getChannelByID(channel.id)
         except AudioError:
             try:
-                cs = ChannelStream(channel.server.voice_client)
+                cs = ChannelStream(channel.guild.voice_client)
             except AttributeError:
                 raise AudioError("No voice client associated with this server.")
             self.channels[channel.id] = cs
@@ -674,10 +685,10 @@ class AudioManager():
         if sync is True, the sound will be queued and only played once all other sounds on this channel have finished.
         """
 
-        if not hasattr(channel.server, "voice_client") or channel.server.voice_client == None:
+        if not hasattr(channel.guild, "voice_client") or channel.guild.voice_client == None:
             raise AudioError("There is no voice connection on this server.")
 
-        vc = channel.server.voice_client
+        vc = channel.guild.voice_client
 
         if not channel.id == vc.channel.id:
             raise AudioError("Not currently connected to this channel.")

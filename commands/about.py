@@ -25,8 +25,8 @@ class About(Command):
 
     async def call(self, **kwargs):
 
-        ownerID = self.config.getElementText("bot.owner")
-        owner = await self.client.get_user_info(ownerID)
-        support_info = "%s#%s (UID: %s)" % (owner.name, str(owner.discriminator), ownerID)
+        ownerID = self.config.getElementInt("bot.owner")
+        owner = await self.client.fetch_user(ownerID)
+        support_info = "%s#%s (UID: %i)" % (owner.name, str(owner.discriminator), ownerID)
         text = ABOUT_TEXT % (S_TITLE_VERSION, support_info)
         await self.respond(text)

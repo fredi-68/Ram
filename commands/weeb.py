@@ -25,7 +25,7 @@ class MyCommand(Command):
 
         db = self.db.getServer("global") #use some global database
 
-        db.createTableIfNotExists("weebs", {"user": "text"}, True)
+        db.createTableIfNotExists("weebs", {"user": "int"}, True)
         ds = db.createDatasetIfNotExists("weebs", {"user": member.id})
         if ds.exists():
             #user is already a weeb. FCKIN WEB LULZ

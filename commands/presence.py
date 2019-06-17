@@ -13,4 +13,4 @@ class MyCommand(Command):
 
     async def call(self, type, game, **kwargs):
 
-        await self.client.change_presence(game=discord.Game(name=game, type=type))
+        await self.client.change_presence(activity=discord.Game(name=game, type=type))

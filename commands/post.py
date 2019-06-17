@@ -15,4 +15,4 @@ class MyCommand(Command):
     async def call(self, channel, message, **kwargs):
 
         logger.debug(channel, message)
-        await self.client.send_message(channel, message) #I can't believe how simple this is now
+        await channel.send(message) #I can't believe how simple this is now

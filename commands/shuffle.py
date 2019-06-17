@@ -16,7 +16,7 @@ class ShuffleCommand(Command):
 
     async def call(self):
 
-        server = self.msg.server
+        server = self.msg.guild
         if not (hasattr(server, "voice_client") and server.voice_client):
             await self.respond("I'm currently not in a voice channel on this server.", True)
             return

@@ -18,13 +18,13 @@ class MyCommand(Command):
             await self.respond("Origin and destination channels must be voice channels!",True)
             return
 
-        if len(fromCh.voice_members) <= 0:
+        if len(fromCh.members) <= 0:
 
             await self.respond("There is no one in this channel!",True)
             return
 
-        for i in list(fromCh.voice_members): #Make sure the iterator doesn't change its content while moving members (this leads to only half the members getting moved)
+        for i in list(fromCh.members): #Make sure the iterator doesn't change its content while moving members (this leads to only half the members getting moved)
 
-            await self.client.move_member(i,toCh)
+            await i.edit(voice_channel=toCh)
 
         return

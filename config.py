@@ -365,7 +365,7 @@ class DatasetHandle():
             if ";" in retValue:
                 raise ValueError("Unexpected symbol ';' in value of type str.") #This is a common SQL injection technique
             return retValue
-        elif type in ("int"):
+        elif type in ("int", "INTEGER"):
             if value == None:
                 return 0
             return int(value)
@@ -783,13 +783,13 @@ class DatabaseHandle():
         This method will perform first time setup if the database just got created.
         """
 
-        self.createTableIfNotExists("blockedUsers", {"userID":"text"}, False)
-        self.createTableIfNotExists("blockedChannels", {"channelID":"text"}, False)
-        self.createTableIfNotExists("pinChannels", {"channelID":"text"}, False)
-        self.createTableIfNotExists("tasks", {"channelID":"text", "frequency":"int", "message":"text", "time":"text", "last":"text"}, False)
-        self.createTableIfNotExists("auditLogChannels", {"channelID":"text"}, False)
-        self.createTableIfNotExists("timeoutRole", {"roleID":"text"}, False)
-        self.createTableIfNotExists("timeoutCount", {"userID":"text", "count":"int"}, False)
+        self.createTableIfNotExists("blockedUsers", {"userID":"int"}, False)
+        self.createTableIfNotExists("blockedChannels", {"channelID":"int"}, False)
+        self.createTableIfNotExists("pinChannels", {"channelID":"int"}, False)
+        self.createTableIfNotExists("tasks", {"channelID":"int", "frequency":"int", "message":"text", "time":"text", "last":"text"}, False)
+        self.createTableIfNotExists("auditLogChannels", {"channelID":"int"}, False)
+        self.createTableIfNotExists("timeoutRole", {"roleID":"int"}, False)
+        self.createTableIfNotExists("timeoutCount", {"userID":"int", "count":"int"}, False)
 
         self._db.commit()
 
@@ -1027,7 +1027,7 @@ class DatabaseManager():
         except KeyError: #the object may have been garbage collected while we were referencing it, or just doesn't exist
             pass
 
-        handle = DatabaseHandle(self.path+"/"+serverID, serverID)
+        handle = DatabaseHandle(self.path+"/"+str(serverID), serverID)
         self._cache[serverID] = handle #cache our databaseHandle
         return handle
 
@@ -1043,8 +1043,8 @@ class DatabaseManager():
 
         if isinstance(msg, discord.Message):
 
-            if msg.server:
-                return self.getServer(msg.server.id)
+            if msg.guild:
+                return self.getServer(msg.guild.id)
 
         elif msg != None:
             raise TypeError("msg must be of type discord.Message or None")

@@ -40,9 +40,9 @@ class CmdPin(Command):
 
         title = "Pinned Message " + pin_icon #Embed title #TODO: Work out how those fancy fields work an use those instead of our clunky implementation.
 
-        desc = "MESSAGE PINNED BY " + chatutils.mdBold(cmd.author.name) + " AT " + chatutils.mdBold(cmd.timestamp.strftime("%c")) + \
+        desc = "MESSAGE PINNED BY " + chatutils.mdBold(cmd.author.name) + " AT " + chatutils.mdBold(cmd.created_at.strftime("%c")) + \
         ":\n-------------------------------------\nORIGINAL MESSAGE BY " + chatutils.mdBold(msg.author.name) + " IN " + \
-        chatutils.mdBold(msg.channel.name) + " AT " + chatutils.mdBold(msg.timestamp.strftime("%c")) + "\n\n"
+        chatutils.mdBold(msg.channel.name) + " AT " + chatutils.mdBold(msg.created_at.strftime("%c")) + "\n\n"
     
         desc += msg.content+"\n" #pinned message
         image = None
@@ -57,5 +57,5 @@ class CmdPin(Command):
             e.set_image(url=image)
 
         for i in dsList:
-            dch = self.msg.server.get_channel(i.getValue("channelID"))
-            await self.client.send_message(dch, None, embed = e)
+            dch = self.msg.guild.get_channel(i.getValue("channelID"))
+            await dch.send(embed=e)

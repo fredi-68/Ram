@@ -15,7 +15,7 @@ class MyCommand(Command):
 
     async def call(self, **kwargs):
 
-        if self.responseHandle.getID() == "205327762628542464":
+        if self.responseHandle.getID() == 205327762628542464:
             await self.respond("I'm always here for you, master.",True)
             return
 

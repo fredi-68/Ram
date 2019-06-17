@@ -32,7 +32,7 @@ def getMention(msg):
     """
 
     result = re_user_mention.search(msg)
-    return result.group(1) if result else None
+    return int(result.group(1)) if result else None
 
 def getRoleMention(msg):
 
@@ -41,7 +41,7 @@ def getRoleMention(msg):
     """
 
     result = re_role_mention.search(msg)
-    return result.group(1) if result else None
+    return int(result.group(1)) if result else None
 
 def getChannelMention(msg):
 
@@ -50,7 +50,7 @@ def getChannelMention(msg):
     """
 
     result = re_channel_mention.search(msg)
-    return result.group(1) if result else None
+    return int(result.group(1)) if result else None
 
 def splitCommandString(cmd):
 

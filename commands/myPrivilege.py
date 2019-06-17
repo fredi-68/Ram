@@ -24,10 +24,8 @@ class MyCommand(Command):
 
     async def call(self, target="", **kwargs):
 
-
-
         db = self.db.getDatabaseByMessage(self.msg)
-        db.createTableIfNotExists("privilegePoints", {"user": "text", "points": "int"}, True)
+        db.createTableIfNotExists("privilegePoints", {"user": "int", "points": "int"}, True)
 
         if target in ("ranking", "leaderboard", "board", "scoreboard"):
 
@@ -38,7 +36,7 @@ class MyCommand(Command):
             wrapperList = list(map(DatasetWrapper, dslist))
             wrapperList.sort()
             for i in wrapperList:
-                rets += self.msg.server.get_member(i.dataset.getValue("user")).name + ": " + str(i.dataset.getValue("points"))
+                rets += self.msg.guild.get_member(i.dataset.getValue("user")).name + ": " + str(i.dataset.getValue("points"))
 
             await self.respond(rets, True)
             return
@@ -51,7 +49,7 @@ class MyCommand(Command):
             t = chatutils.getMention(target)
 
             try:
-                target = self.msg.server.get_member(t if t else target)
+                target = self.msg.guild.get_member(t if t else target)
             except:
                 await self.respond("Illegal value for target: "+target, True)
                 return

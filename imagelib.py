@@ -300,6 +300,42 @@ class Image(io.RawIOBase):
 
         return getPNGBuffer(self._surf)
 
+    def seek(self, n=0):
+
+        """
+        This is only here to stop discord.py from complaining.
+        This method doesn't actually do anything.
+        """
+
+        pass
+
+    def readable(self):
+
+        """
+        This is only here to stop discord.py from complaining.
+        This method doesn't actually do anything.
+        """
+
+        return True
+
+    def seekable(self):
+
+        """
+        This is only here to stop discord.py from complaining.
+        This method doesn't actually do anything.
+        """
+
+        return True
+
+    def tell(self):
+
+        """
+        This is only here to stop discord.py from complaining.
+        This method doesn't actually do anything.
+        """
+
+        return 0
+
     def read(self, n=0):
 
         """
@@ -432,14 +468,14 @@ class Image(io.RawIOBase):
 
         for i in range(width):
 
-        if sides & 2:
-            surf.blit(surf, (0, 1), special_flags=pygame.BLEND_RGBA_MAX)
-        if sides & 1:
-            surf.blit(surf, (0, -1), special_flags=pygame.BLEND_RGBA_MAX)
-        if sides & 8
-            surf.blit(surf, (1, 0), special_flags=pygame.BLEND_RGBA_MAX)
-        if sides & 4
-            surf.blit(surf, (-1, 0), special_flags=pygame.BLEND_RGBA_MAX)
+            if sides & 2:
+                surf.blit(surf, (0, 1), special_flags=pygame.BLEND_RGBA_MAX)
+            if sides & 1:
+                surf.blit(surf, (0, -1), special_flags=pygame.BLEND_RGBA_MAX)
+            if sides & 8:
+                surf.blit(surf, (1, 0), special_flags=pygame.BLEND_RGBA_MAX)
+            if sides & 4:
+                surf.blit(surf, (-1, 0), special_flags=pygame.BLEND_RGBA_MAX)
 
         return surf
 

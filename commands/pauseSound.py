@@ -18,7 +18,7 @@ class MyCommand(Command):
             if not self.msg:
                 await self.respond("You need to specify a server when pausing/unpausing from console.")
                 return
-            server = self.msg.server
+            server = self.msg.guild
 
         if not (hasattr(server, "voice_client") and server.voice_client):
             await self.respond("I'm currently not in a voice channel on this server.", True)

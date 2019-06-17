@@ -16,4 +16,4 @@ class MyCommand(Command):
         if not isinstance(member, discord.Member):
             await self.respond("Not a valid member ID!",True)
             return
-        await self.client.change_nickname(member,name)
+        await member.edit(nick=name)

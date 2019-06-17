@@ -21,7 +21,7 @@ class MyCommand(Command):
 
         #FIXME: This will NOT work once we switch to a normal user account since purging is bot only.
         #We need a workaround in case a non bot account is used, using normal delete calls
-        ret = len(await self.client.purge_from(message.channel, limit=500, after=message, check=check))
+        ret = len(await message.channel.purge(limit=500, after=message, check=check))
 
         await self.respond(str(ret) + " message(s) deleted.")
 

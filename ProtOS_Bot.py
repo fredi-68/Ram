@@ -176,14 +176,17 @@ def logMessage(msg):
         for j in i.items():
             s += "\n       " + j[0] + ": " + str(j[1])
 
-    if msg.channel.is_private: #We received a DM instead of a server message, this means most of our code is not required
-            
-        name = msg.channel.recipients[0].name if not msg.channel.name else msg.channel.name
+    if isinstance(msg.channel, discord.abc.PrivateChannel): #We received a DM instead of a server message, this means most of our code is not required
+        if isinstance(msg.channel, discord.DMChannel):    
+            name = msg.channel.recipient.name
+        else:
+            name = getattr(msg.channel, "name", msg.channel.recipients[0].name)
+        
         logger.info("[DM][%s](%s): %s" % (name, a, s))
         return
 
-    color = msg.author.colour.to_tuple() if hasattr(msg.author, "colour") else (0, 0, 0)
-    logger.info("[%s][%s](%s): %s" % (msg.server.name, msg.channel.name, cmdutils.colorText(a, color), s))
+    color = msg.author.colour.to_rgb() if hasattr(msg.author, "colour") else (0, 0, 0)
+    logger.info("[%s][%s](%s): %s" % (msg.guild.name, msg.channel.name, cmdutils.colorText(a, color), s))
 
 def changeRecordingState(ch):
 
@@ -266,7 +269,7 @@ class ResponseManager():
         elif self.is_chat() and self.msg.channel.type == discord.ChannelType.text:
             local_permissions = self.msg.author.permissions_in(self.msg.channel)
             try:
-                server_permissions = self.msg.author.server_permissions
+                server_permissions = self.msg.author.guild_permissions
             except:
                 server_permissions = discord.Permissions.none()
             return discord.Permissions(local_permissions.value | server_permissions.value) #union both permissions
@@ -381,7 +384,7 @@ class ResponseManager():
                             #If this happens, it's the users fault, since we cannot split the message up
                             #without causing issues. We will attempt to send it but it WILL fail.
                             #Let the error propagate.
-                            await self.client.send_message(self.msg.channel, self.chat_messages.pop(0))
+                            await self.msg.channel.send(self.chat_messages.pop(0))
                         break
 
                     ret += self.chat_messages.pop(0) #get next message and add it to the buffer.
@@ -391,7 +394,7 @@ class ResponseManager():
                 #we want to avoid empty messages and always append a newline so we check for messages smaller than 2 characters
                 ret = ret.rstrip("\n") #strip last newline
                 if len(ret) > 0:
-                    await self.client.send_message(self.msg.channel, ret) #send message
+                    await self.msg.channel.send(ret) #send message
 
     def _RPCCreateEmbed(self, embed):
 
@@ -423,7 +426,7 @@ class ResponseManager():
         Output is NOT buffered.
         """
 
-        await self.client.send_message(self.msg.channel, "", embed=embed)
+        await self.msg.channel.send("", embed=embed)
 
     async def flush(self):
 
@@ -596,7 +599,7 @@ class CmdVoice(Command):
 
         self.name = "voice"
         self.desc = "Makes the bot join voice chat."
-        self.addArgument(Argument("channel", CmdTypes.STR, True))
+        self.addArgument(Argument("channel", CmdTypes.CHANNEL, True))
 
     async def call(self, channel=None, **kwargs):
 
@@ -606,20 +609,19 @@ class CmdVoice(Command):
                 return
         else:
             if not channel:
-                if not self.msg.author.voice_channel:
+                if not self.msg.author.voice.channel:
                     await self.respond("You are not in a voice channel. Please specify a channel for me to connect to.", True)
                     return
-                channel = self.msg.author.voice_channel.id
-        channel = client.get_channel(channel)
+                channel = self.msg.author.voice.channel
         await self.respond("Joining channel now...", True)
         try:
-            await client.join_voice_channel(channel)
+            await channel.connect()
         except discord.errors.DiscordException:
             await self.respond("Failed to join voice channel.", True)
             return
 
         #Load audio configuration for server
-        db = self.db.getServer(self.msg.server.id)
+        db = self.db.getServer(self.msg.guild.id)
         db.createTableIfNotExists("voiceClientSettings", {"name": "text", "value": "text"})
         ds = db.createDatasetIfNotExists("voiceClientSettings", {"name": "volume"})
         if not ds.exists():
@@ -653,9 +655,9 @@ class CmdLeave(Command):
                 return
         else:
             if not server:
-                server = self.msg.server
+                server = self.msg.guild
 
-        if not client.voice_client_in(server):
+        if not server.voice_client:
             await self.respond("Not currently connected to any voice channels on this server.", True)
             return
 
@@ -726,10 +728,10 @@ class CmdVoiceDebug(Command):
 
     async def call(self, **kwargs):
 
-        if not (hasattr(self.msg.server, "voice_client") and self.msg.server.voice_client):
+        if not (hasattr(self.msg.guild, "voice_client") and self.msg.guild.voice_client):
             await self.respond("I'm currently not in a voice channel on this server.", True)
             return
-        changeRecordingState(self.msg.server.voice_client.channel)
+        changeRecordingState(self.msg.guild.voice_client.channel)
 
 COMMANDS.append(CmdVoiceDebug())
 
@@ -798,10 +800,10 @@ class CmdStats(Command):
 
         discordInformation = (
             "Discord.py Version: %s" % discord.__version__,
-            "Server Count: %i    " % len(list(client.servers)),
+            "Server Count: %i    " % len(list(client.guilds)),
             "Member Count: %i    " % len(list(client.get_all_members())),
             "Channel Count: %i    " % len(list(client.get_all_channels())),
-            "Emoji Count: %i    " % len(list(client.get_all_emojis()))
+            "Emoji Count: %i    " % len(list(client.emojis))
             )
         e.add_field(name="Discord Related:", value="\n".join(discordInformation), inline=True)
 
@@ -1126,7 +1128,7 @@ async def on_ready():
     #called on bot login after connection. At least it used to be...
 
     logger = logging.getLogger("Discord")
-    logger.info("Client logged in as " + cmdutils.formatText(client.user.name, bold=True) + " (" + client.user.id + ")")
+    logger.info("Client logged in as %s (%i)" % (cmdutils.formatText(client.user.name, bold=True), client.user.id))
     if client.user.bot:
         logger.info("Client is using a bot account, feature restrictions may apply")
 
@@ -1140,7 +1142,7 @@ async def on_ready():
     client.loop.create_task(autosave())
 
     #set playing state
-    await client.change_presence(game=GAME)
+    await client.change_presence(activity=GAME)
 
 @client.event
 async def on_message(msg):
@@ -1172,7 +1174,7 @@ async def on_message(msg):
     else:
         if client.user.mentioned_in(msg) and not msg.author.id == client.user.id:
 
-            await client.send_typing(msg.channel) #makes it seem more real (TODO: we need a way to terminate this if the following code throws an error)
+            await msg.channel.trigger_typing() #makes it seem more real (TODO: we need a way to terminate this if the following code throws an error)
 
             #SPECIAL CASES (Easter eggs)
 
@@ -1181,44 +1183,44 @@ async def on_message(msg):
 
             #Initiate self destruct sequence, authorization code: *******************
             elif chatutils.checkForWords(["initiate", "self", "destruct", "sequence"], msg.content):
-                await client.send_message(msg.channel,msg.author.mention + ", Access denied: Authentification required. 30 seconds until lockout.")
+                await msg.channel.send(msg.author.mention + ", Access denied: Authentification required. 30 seconds until lockout.")
                 auth_code = await client.wait_for_message(timeout=30, author=msg.author, channel=msg.channel)
                 if not auth_code:
                     return
                 elif auth_code.content == "LucioLover69": #:P
-                    await client.send_message(msg.channel, msg.author.mention + ", Affirmative. Self destruct command received. Initializing...")
+                    await msg.channel.send(msg.author.mention + ", Affirmative. Self destruct command received. Initializing...")
                     await asyncio.sleep(3)
-                    await client.send_message(msg.channel, "Self destruct sequence successfully initialized. 60 seconds until detonation.")
+                    await msg.channel.send("Self destruct sequence successfully initialized. 60 seconds until detonation.")
                     await asyncio.sleep(30)
-                    await client.send_message(msg.channel, "30 seconds until detonation.")
+                    await msg.channel.send("30 seconds until detonation.")
                     await asyncio.sleep(20)
-                    await client.send_message(msg.channel, "10 seconds until detonation.")
+                    await msg.channel.send("10 seconds until detonation.")
                     await asyncio.sleep(5)
                     for i in range(5,0,-1):
-                        await client.send_message(msg.channel, str(i))
+                        await msg.channel.send(str(i))
                         await asyncio.sleep(1)
                     await asyncio.sleep(6)
-                    await asyncio.send_message(msg.channel, "Code 5011, internal socket error. Self destruct command could not be executed correctly. Access violation at Address 0xFFFFFFyF88FF.//ok*}|^lll'lr__422&+erROr:;<<<<<<<<")
+                    await msg.channel.send("Code 5011, internal socket error. Self destruct command could not be executed correctly. Access violation at Address 0xFFFFFFyF88FF.//ok*}|^lll'lr__422&+erROr:;<<<<<<<<")
                     return
                 else:
-                    await client.send_message(msg.channel, msg.author.mention + ", Access denied.")
+                    await msg.channel.send(msg.author.mention + ", Access denied.")
                     return
 
             #use our MegaHal implementation to get a response
 
             if CONFIG_MANAGER.getElementText("bot.chat.aistate") == "off": #AI turned off
-                await client.send_message(msg.channel, msg.author.mention + ", Sorry, this feature is unavailable right now. Please try again later.")
+                await msg.channel.send(msg.author.mention + ", Sorry, this feature is unavailable right now. Please try again later.")
                 return
 
-            if msg.server:
+            if msg.guild:
                 #Check if this channel is blocked for AI
-                db = DATABASE_MANAGER.getServer(msg.server.id)
+                db = DATABASE_MANAGER.getServer(msg.guild.id)
                 ds = db.createDatasetIfNotExists("blockedChannels", {"channelID": msg.channel.id})
                 if ds.exists(): #YOU'RE BANNED
-                    await client.send_message(msg.channel, msg.author.mention + ", " + interaction.confused.getRandom())
+                    await msg.channel.send(msg.author.mention + ", " + interaction.confused.getRandom())
                     return
 
-            if not ("<@" + client.user.id + ">" in msg.content or "<@!" + client.user.id + ">" in msg.content): #cheking for group mentions
+            if not ("<@" + str(client.user.id) + ">" in msg.content or "<@!" + str(client.user.id) + ">" in msg.content): #cheking for group mentions
                 #must be either @here or @everyone... make this a rare occurance
                 if random.random() > 0.01: #only process every 100th message
                     return
@@ -1230,14 +1232,14 @@ async def on_message(msg):
                 return
 
             if isinstance(response, bytes):
-                await client.send_message(msg.channel, msg.author.mention + ", " + response.decode()) #post our answer
+                await msg.channel.send(msg.author.mention + ", " + response.decode()) #post our answer
             else:
-                await client.send_message(msg.channel, msg.author.mention + ", " + response)
+                await msg.channel.send(msg.author.mention + ", " + response)
 
         elif len(msg.content) > 0 and (not msg.author.id == client.user.id): #we don't want the bot to listen to its own messages
 
             if "Remember that everything posted in here is absolute dogshit." in msg.content and msg.author.id == "159985870458322944":
-                await client.send_message(msg.channel, msg.author.mention + ", you're absolute dogshit.")
+                await msg.channel.send(msg.author.mention + ", you're absolute dogshit.")
                 await asyncio.sleep(60)
                 await client.delete_message(msg)
 
@@ -1247,12 +1249,12 @@ async def on_message(msg):
 
             elif "#votepy" in msg.content.lower():
                 await client.delete_message(msg)
-                await client.send_message(msg.channel, msg.author.mention + ", WATCH YOUR LANGUAGE!!! :rage:")
+                await msg.channel.send(msg.author.mention + ", WATCH YOUR LANGUAGE!!! :rage:")
 
             pp = interaction.calculatePrivilegePoints(msg.content)
             if pp >= 1:
                 #add pp to user using our database implementation
-                dbHandle = DATABASE_MANAGER.getServer(msg.server.id)
+                dbHandle = DATABASE_MANAGER.getServer(msg.guild.id)
                 dbHandle.createTableIfNotExists("privilegePoints", {"user": "text", "points": "int"}, True)
                 ds = dbHandle.createDatasetIfNotExists("privilegePoints", {"user": msg.author.id}) #get the users pp entry or create one
 
@@ -1273,9 +1275,9 @@ async def on_message(msg):
                 if CONFIG_MANAGER.getElementText("bot.chat.aistate") == "off": #AI turned off
                     return
 
-                if msg.server:
+                if msg.guild:
                     #Check if this channel is blocked for AI
-                    db = DATABASE_MANAGER.getServer(msg.server.id)
+                    db = DATABASE_MANAGER.getServer(msg.guild.id)
                     ds = db.createDatasetIfNotExists("blockedChannels", {"channelID": msg.channel.id})
                     if ds.exists(): #YOU'RE BANNED
                         return
@@ -1285,13 +1287,13 @@ async def on_message(msg):
             c = msg.content.lower()
             if " ram " in c or c.startswith("ram ") or c.endswith(" ram") or c == "ram": #Make the bot sometimes respond to its name when it comes up
 
-                for i in msg.server.emojis: #Always try to add a "Ram" emoji if available
+                for i in msg.guild.emojis: #Always try to add a "Ram" emoji if available
                     if i.name.lower() == "ram":
                         await client.add_reaction(msg, i)
                         break
 
                 if random.random() <= 0.001: #Responds with a probability of 1:1000
-                    await client.send_message(msg.channel, interaction.mentioned.getRandom()) #IT HAS BECOME SELF AWARE!!!
+                    await msg.channel.send(interaction.mentioned.getRandom()) #IT HAS BECOME SELF AWARE!!!
 
 
 @client.event
@@ -1299,7 +1301,7 @@ async def on_voice_state_update(before,after):
 
     #Voice line handling
     if (after.voice_channel and after.voice_channel != before.voice_channel): #if the user is connected and has changed his voice channel (this may mean he just joined)
-        if after.server.voice_client and (after.voice_channel == after.server.voice_client.channel): #we are in the same channel as our target
+        if after.guild.voice_client and (after.voice_channel == after.guild.voice_client.channel): #we are in the same channel as our target
 
             #Use new dynamic voiceline handling (voicelines are compared by User ID / Filename instead of a dictionary lookup
             #This isn't necessarily any faster but it is more convenient and doesn't require a restart to assign voicelines
