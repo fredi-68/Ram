@@ -20,6 +20,7 @@ import uuid
 import urllib
 import os
 import enum
+import io
 
 import discord
 from discord.player import AudioPlayer
@@ -183,6 +184,21 @@ class Sound():
         """
 
         return b""
+
+class PCMSound(Sound):
+
+    def __init__(self, buffer, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.buffer = io.BytesIO(buffer)
+
+    def read(self, n):
+
+        data = self.buffer.read(n)
+        if len(data) < 1:
+            self.stop()
+            self.kill()
+        return data
 
 class FFMPEGSound(Sound):
 
@@ -480,7 +496,7 @@ class ChannelStream(discord.AudioSource):
 
         self.rmLock.acquire()
         for i in self._playing.copy():
-            if i.skippable or forced:
+            if i.skippable or force:
                 i.stop()
                 self._playing.remove(i)
         self.rmLock.release()
@@ -567,20 +583,26 @@ class ChannelStream(discord.AudioSource):
 
         for i in self._playing:
             sa = i.read(n)
+            l_sa = len(sa)
+            l_buf = len(buffer)
             if self.volume != 1.0: #apply channel volume
                 sa = audioop.mul(sa, SAMPLE_WIDTH, self.volume)
-            if len(sa) > len(buffer):
-                buffer += bytes([0] * (len(sa) - len(buffer)))
-            elif len(buffer) > len(sa):
-                sa += bytes([0] * (len(buffer) - len(sa)))
+            if l_sa > l_buf:
+                buffer += bytes([0] * (l_sa - l_buf))
+            elif l_buf > l_sa:
+                sa += bytes([0] * (l_buf - l_sa))
             buffer = audioop.add(buffer, sa, SAMPLE_WIDTH)
 
         #only auto skip if we have no sounds and the buffer is empty.
         #if the queue is empty, there is no point in advancing
-        if len(buffer) < 1 and len(self._playing) < 1 and len(self._queue) > 0:
-            self.logger.debug("Active sounds finished playing, advancing to next item in queue.")
-            self.next()
-            return self.read(self, n)
+        if len(buffer) < 1 and len(self._playing) < 1:
+            if len(self._queue) > 0:
+                self.logger.debug("Active sounds finished playing, advancing to next item in queue.")
+                self.next()
+                return self.read(self, n)
+            else:
+                self.logger.debug("Queue completed, stopping playback.")
+                return bytes([0] * 20) #send 5 frames of silence to ensure the encoder is left in the correct state
 
         return buffer
 

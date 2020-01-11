@@ -248,7 +248,7 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
         if words[0] in patterns: #first word matches search pattern - this is the command we are looking for
 
             #is the user allowed to use this command?
-            if responseHandle.is_chat():
+            if not responseHandle.is_rpc():
 
                 if not i.allowChat:
                     await responseHandle.reply(icons["forbidden"] + " This command is not available in chat!")
@@ -267,14 +267,15 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                     return
 
                 #Is this user blocked?.
-                if responseHandle.getMessage().guild: #disabled for private messages
-                    db = databaseManager.getServer(responseHandle.getMessage().guild.id)
+                if responseHandle.is_chat():
+                    if responseHandle.getMessage().guild: #disabled for private messages
+                        db = databaseManager.getServer(responseHandle.getMessage().guild.id)
 
-                    ds = db.createDatasetIfNotExists("blockedUsers", {"userID": responseHandle.getMessage().author.id})
-                    if ds.exists(): #FOUND YOU
-                        await responseHandle.reply("You have been blocked from using bot commands. If you believe that this is an error please report this to the bot owner.", True)
-                        responseHandle.close()
-                        return
+                        ds = db.createDatasetIfNotExists("blockedUsers", {"userID": responseHandle.getMessage().author.id})
+                        if ds.exists(): #FOUND YOU
+                            await responseHandle.reply("You have been blocked from using bot commands. If you believe that this is an error please report this to the bot owner.", True)
+                            responseHandle.close()
+                            return
 
             elif responseHandle.is_rpc():
                 if not i.allowConsole:

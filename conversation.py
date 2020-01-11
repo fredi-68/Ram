@@ -418,7 +418,7 @@ class BrianCS(ConversationSimulator):
     def _prepareMessage(self, msg):
 
         """
-        Prepares a chat message for export to the AI process via local IPv4 loopback
+        Prepares a chat message
         """
 
         s = msg.content.replace("<@" + str(self.client.user.id) + ">", "") #make sure the bot mention doesn't show up if it was input
@@ -427,17 +427,17 @@ class BrianCS(ConversationSimulator):
 
         if not s: #we deleted everything... WELL
             return None
-        return s #prepare message for network transfer
+        return s
 
     async def observe(self, msg):
 
         t = self._prepareMessage(msg)
-        await self.client.loop.run_in_executor(None, self.model.observe, t.lower(), msg.channel.name)
+        await self.client.loop.run_in_executor(None, self.model.observe, t.lower(), str(msg.channel.id))
 
     async def respond(self, msg):
         
         t = self._prepareMessage(msg)
-        res = await self.client.loop.run_in_executor(None, self.model.respond, t.lower(), msg.channel.name)
+        res = await self.client.loop.run_in_executor(None, self.model.respond, t.lower(), str(msg.channel.id))
 
         return res
 

@@ -90,7 +90,7 @@ class lineStorage():
         except:
             return False
 
-        self.lines = f.readlines()
+        self.lines = list(map(lambda x: x.rstrip("\n"), f.readlines()))
         f.close()
 
     def getRandom(self):
@@ -116,7 +116,7 @@ class lineStorage():
         If the operation was successfull, the returned value will be the index of the newly created line."""
 
         try:
-            f = open(self.path,"w")
+            f = open(self.path, "w")
         except:
             return False
 

@@ -50,6 +50,7 @@ import chatutils
 import interaction
 import audio
 import conversation
+from responseManager import *
 
 from cmdsys import *
 
@@ -196,299 +197,14 @@ def changeRecordingState(ch):
 
     logger = logging.getLogger("Audio")
     if ch.id in SOUNDS_RECORDING: #we are already recording on this channel, stop the recording
-        SOUNDS_RECORDING[ch.id].stop()
+        SOUNDS_RECORDING[ch.id].close()
+        CONNECTIONLISTENER.removeSink(SOUNDS_RECORDING[ch.id])
         del SOUNDS_RECORDING[ch.id] #remove the FileRecorder from the dict
     else:
-        filename = "sounds/recordings/%s_%s.wav" % (ch.name, time.strftime("%Y-%m-%d_%H-%M-%S"))
-        SOUNDS_RECORDING[ch.id] = FileRecorder(CONNECTIONLISTENER, ch, filename, None)
-
-class ResponseManager():
-
-    #Discord hard limits message length. For long responses, we want to automatically
-    #split up the payload into chunks of the specified length.
-    CHAT_CHARACTER_LIMIT = 2000
-
-    def __init__(self, client=None, msg=None, reader=None, writer=None):
-
-        """
-        Response Manager class
-        This class abstracts command responses from the user by supplying a unified interface that will do "the right thing".
-        If the command was issued via chat post, this will output to the channel the message was received from.
-        If the command was issued by a RPC, this will accumulate the results and send them to the caller.
-        Users should either supply both client and chat or reader and writer as keyword arguments.
-        If all arguments are present, both behaviours will be executed subsequently.
-        """
-
-        self.logger = logging.getLogger("Response Manager")
-
-        if not ((client and msg) or (reader and writer)):
-            raise ValueError("User must specify either client and msg or reader and writer instances")
-
-        self.is_closed=False
-        self.client = client
-        self.msg = msg
-        self.reader = reader
-        self.writer = writer
-
-        self.rpc_messages = []
-        self.chat_messages = []
-
-    def getMessage(self):
-
-        """
-        Returns the original message object.
-        If the command was not issued through chat, this method will return None.
-        """
-
-        return self.msg if self.is_chat() else None
-
-    async def getCommand(self):
-
-        """
-        Returns the original command message. This will include the prefix of chat commands.
-        If the command can not be determined this method will return an empty string.
-        """
-
-        if self.is_rpc():
-            return (await self.reader.readline()).decode() #get command and convert it to str
-        elif self.is_chat():
-            return self.msg.content
-        return ""
-
-    def getPermission(self):
-
-        """
-        Returns the permissions for the command issuer. For RPCs this will always be administrator level.
-        If the permission level can not be determined this method will return a Permissions object with no permissions.
-        """
-
-        if self.is_rpc():
-            p = discord.Permissions.all() #Give RPC calls all permissions, regardless of accessed area
-            return p
-        #make sure that user permissions are only retrieved from discord if we are in a public server (admin commands should not work in DMs)
-        elif self.is_chat() and self.msg.channel.type == discord.ChannelType.text:
-            local_permissions = self.msg.author.permissions_in(self.msg.channel)
-            try:
-                server_permissions = self.msg.author.guild_permissions
-            except:
-                server_permissions = discord.Permissions.none()
-            return discord.Permissions(local_permissions.value | server_permissions.value) #union both permissions
-        #if everything fails, we return a safe permissions object without any permissions
-        return discord.Permissions.none()
-
-    def getID(self):
-
-        """
-        Returns the ID of the command issuer. For RPCs this will always be 1.
-        If the ID can not be determined this method will return None
-        """
-
-        if self.is_rpc():
-            return "1" #ensure compatability with chat commands
-        elif self.is_chat():
-            return self.msg.author.id
-        return None
-
-    async def reply(self, msg, mention=False, flush_chat=True):
-
-        """
-        Send a response message to the command issuer.
-        mention specifies if the targeted user should be mentioned and is
-            ignored if the command was executed via RPC.
-        Output is automatically buffered for RPC calls.
-        If flush_chat is True, the message will be dispatched immediately. It is ignored for RPC calls.
-
-        WARNING: Setting flush_chat to False will buffer messages until the ResponseManager is GCed OR another call to reply()
-        is made with flush_chat set to True (in this case, all messages will be dispached in order).
-        If you don't manually flush your messages at least once after setting flush_chat to False, they will be sent after an
-        indefinite amount of time. If you sent messages with flush_chat=False, you should consider calling flush() to ensure that
-        the messages are dispatched correctly.
-
-        WARNING: If your message is longer than Discords internal character limit (currently 2000 characters per message) it
-        may not send properly. The ResponseManager will attempt to split up messages that are longer than the character limit,
-        however, this does not work in specific cases. For example, sending a message with a single line of more than 2000 characters
-        will fail. Also, sending very long messages of over 5x the character limit may take severely longer due to Discord internal rate
-        limiting. There is no way of cicumventing this behavior, so keep it short.
-
-        If you try to send a message larger than 2000 characters a warning will be logged.
-        """
-
-        if self.is_rpc():
-            self._RPCReply(msg)
-
-        if self.is_chat():
-
-            if len(msg) > self.CHAT_CHARACTER_LIMIT:
-                self.logger.warn("Message is over character limit, message may fail to send properly")
-
-            for line in msg.split("\n"):
-                await self._ChatReply(line, mention, False)
-                mention = False #if mention was set, it will be in the first line, but no subsequent ones
-            if flush_chat:
-                await self._ChatReply("", False, True)
-
-    async def createEmbed(self, embed):
-
-        """
-        Send a response message to the command user using an Embed object.
-        If the command was executed via RPC,
-        embed behaviour will be emulated using ASCII characters.
-        """
-
-        if self.is_rpc():
-            self._RPCCreateEmbed(embed)
-
-        if self.is_chat():
-            await self._ChatCreateEmbed(embed)
-
-    def is_rpc(self):
-
-        """
-        Check if the message was send via RPC
-        """
-
-        return self.reader and self.writer
-
-    def is_chat(self):
-
-        """
-        Check if the message was send via chat
-        """
-
-        return self.client and self.msg
-
-    def _RPCReply(self, msg):
-
-        if not msg:
-            return
-
-        self.rpc_messages.append(msg)
-        self.logger.info(msg) #log message to screen
-
-    async def _ChatReply(self, msg, mention, flush_chat):
-
-        ret = self.msg.author.mention + ", " + msg if mention else msg #add a mention to the response if requested
-        self.chat_messages.append(ret)
-
-        if flush_chat:
-
-            #if we don't have any messages, exit
-            while len(self.chat_messages) > 0:
-                ret = ""
-
-                #if we run out of messages, finish this batch then exit
-                while len(self.chat_messages) > 0:
-
-                    if len(ret) + len(self.chat_messages[0]) > self.CHAT_CHARACTER_LIMIT:
-                        if not ret: #This can happen when a single message is too large to be sent
-                            #If this happens, it's the users fault, since we cannot split the message up
-                            #without causing issues. We will attempt to send it but it WILL fail.
-                            #Let the error propagate.
-                            await self.msg.channel.send(self.chat_messages.pop(0))
-                        break
-
-                    ret += self.chat_messages.pop(0) #get next message and add it to the buffer.
-                    ret += "\n" #add newline to separate messages
-                                        #Don't go over the character limit
-
-                #we want to avoid empty messages and always append a newline so we check for messages smaller than 2 characters
-                ret = ret.rstrip("\n") #strip last newline
-                if len(ret) > 0:
-                    await self.msg.channel.send(ret) #send message
-
-    def _RPCCreateEmbed(self, embed):
-
-        """
-        Internal method.
-        Emulates a Discord embed using a text only interface.
-        """
-
-        title = str(embed.title)
-        desc = str(embed.description)
-        footer = str(embed.footer.text)
-        author = str(embed.author.name)
-
-        self.rpc_messages.append("Rich Embed:\n"+"="*60+"\n")
-        self.rpc_messages.append("%s | %s\n" % (title, desc))
-        for i in embed.fields:
-            self.rpc_messages.append("\n"+i.name)
-            self.rpc_messages.append("\n"+"-"*40)
-            self.rpc_messages.append("\n"+i.value+"\n")
-
-        if embed.footer != embed.Empty:
-            self.rpc_messages.append("\n%s | %s" % (footer, author))
-
-    async def _ChatCreateEmbed(self, embed):
-
-        """
-        Internal method.
-        Send an empty message to Discord, with the embed attached.
-        Output is NOT buffered.
-        """
-
-        await self.msg.channel.send("", embed=embed)
-
-    async def flush(self):
-
-        """
-        Flushes the internal message buffer.
-        For RPC, this is currently a no-op, as multipart messages are not implemented yet.
-        """
-
-        await self.reply("", False, True) #flush the chat message buffer
-
-    def close(self):
-
-        """
-        This method should always be called after the command has been executed, even in case of failure. If the command
-        was issued by a RPC, this will accumulate all messages, send them to the caller and then close all streams and perform
-        cleanup.
-        It is safe to call this method more than once.
-        This method is automatically called on object GC to make sure ressources get freed properly.
-        """
-
-        if self.is_closed:
-            return
-
-        if self.is_chat():
-            self.client.loop.create_task(self.flush()) #flush internal message buffer
-
-        if self.is_rpc():
-            #write response
-            lines = map(str.encode, self.rpc_messages) #encode to bytes
-            returnString = b" ".join(lines)
-            if not returnString:
-                returnString = b"Internal error: No response."
-            try:
-                self.writer.write(returnString)
-            except IOError:
-                self.logger.exception("IO Exception occured while trying to write RPC response:")
-            #close RPC connection
-            try:
-                if hasattr(self.writer, "can_write_eof") and self.writer.can_write_eof():
-                    self.writer.write_eof() #close the stream the "nice" way
-                else:
-                    self.logger.warning("Stream doesn't support write_eof()... this could lead to a hang in the RAT process")
-                self.writer.close()
-            except (IOError, OSError, AttributeError):
-                self.logger.exception("Error occured while trying to close the RPC connection:")
-
-        self.is_closed = True
-
-    def __del__(self):
-
-        #This can raise errors if the objects gets GCed while the interpreter is shutting down.
-        #To prevent crashes after asyncio has shut down, we suppress any relevant errors this
-        #call could raise since this is a clean up method and not that important
-        try:
-            self.logger.debug("Response handle is about to be destroyed, ensuring closed connections")
-        except AttributeError:
-            pass
-
-        try:
-            self.close()
-        except:
-            pass
+        filename = "sounds/recordings/%s_%s" % (ch.name, time.strftime("%Y-%m-%d_%H-%M-%S"))
+        recorder = voicecom.SimpleFileRecorder(filename)
+        CONNECTIONLISTENER.addSink(recorder, ch, None, voicecom.SinkType.ALL)
+        SOUNDS_RECORDING[ch.id] = recorder
 
 class FileRecorder():
 
@@ -615,7 +331,7 @@ class CmdVoice(Command):
                 channel = self.msg.author.voice.channel
         await self.respond("Joining channel now...", True)
         try:
-            await channel.connect()
+            voice_client = await channel.connect()
         except discord.errors.DiscordException:
             await self.respond("Failed to join voice channel.", True)
             return
@@ -666,6 +382,7 @@ class CmdLeave(Command):
             self.audioManager.shutdownChannel(server.voice_client.channel) #stop all sounds that are still playing
         except audio.AudioError:
             pass
+
         await server.voice_client.disconnect() #we need to do this after stopping the sounds, otherwise voice_client is set to None
 
 COMMANDS.append(CmdLeave())
@@ -975,6 +692,27 @@ class CmdReloadCommands(Command):
 
 COMMANDS.append(CmdReloadCommands())
 
+class CmdSaveReplay(Command):
+
+    def setup(self):
+
+        self.name = "saveReplay"
+        self.desc = "Save a 10 second replay of the current voice channel."
+        self.allowConsole = False
+
+    async def call(self, **kwargs):
+
+        if not (hasattr(self.msg.guild, "voice_client") and self.msg.guild.voice_client):
+            await self.respond("I'm currently not in a voice channel on this server.",True)
+            return
+
+        ch = self.msg.guild.voice_client.channel
+
+        sound = PCMSound(CONNECTIONLISTENER.getReplay(ch))
+        self.playSound(sound, ch, False)
+
+COMMANDS.append(CmdSaveReplay())
+
 internal_commands = COMMANDS.copy()
 
 logger = logging.getLogger("Command")
@@ -1054,10 +792,11 @@ for i in os.listdir("chat/scripts"):
 
 if USE_VOICECOM:
     logger = logging.getLogger("Voicecom")
-    logger.info("Initializing Google Cloud Speech interface...")
-    VOICEHANDLE = voicecom.VoiceHandle() #init our Google Cloud Speech interface
     logger.info("Installing UDP voice connection hook...")
-    CONNECTIONLISTENER = voicecom.ConnectionListener(client) #init our UDP voice packet listener and register interceptor methods. This object should now do everything on its own. We just need to set it some limits every so often
+    #recognizer = voicecom.speech.GoogleRE()
+    recognizer = voicecom.speech.SphinxRE()
+    CONNECTIONLISTENER = voicecom.ConnectionListener(client, recognizer) #init our UDP voice packet listener and register interceptor methods. This object should now do everything on its own. We just need to set it some limits every so often
+    TTS = voicecom.speech.GoogleTTS()
 
 logging.info("Loading done!")
 cmdutils.printSeparator()
@@ -1070,13 +809,59 @@ async def console_cb(reader, writer):
     Interface for console input
     """
 
-    responseHandle = ResponseManager(reader=reader, writer=writer)
+    responseHandle = RPCResponse(reader, writer)
     try:
         await processCommand(responseHandle, COMMANDS, CONFIG_MANAGER, client, DATABASE_MANAGER, AUDIO_MANAGER) #use our new interface | create ResponseManager
     except:
         #now that we are sending the responses via network to the caller we need to perform some cleanup in case shit goes sideways
         responseHandle.close()
         raise
+
+VOICE_COMMAND_RE_PART = [
+    "^ram[^0-9a-zA-Z]", #at the start of a sentence
+    "[^0-9a-zA-Z]ram$", #at the end of a sentence
+    "[^0-9a-zA-Z]ram[^0-9a-zA-Z]" #in the middle of a sentence
+    ]
+VOICE_COMMAND_RE = re.compile("|".join(map(lambda x: "(%s)" % x, VOICE_COMMAND_RE_PART)))
+async def voice_cb(text, user, channel):
+
+    """
+    Interface for voice commands
+    """
+
+    logging.debug("Got new voice command (channel='%s', user='%s'): '%s'" % (str(channel), str(user), text))
+
+    text = text.lower()
+    match = VOICE_COMMAND_RE.search(text)
+    if match is not None:
+
+        cmd = text[match.end():]
+
+        #PREPROCESS STRING
+        cmd = cmd.strip(" ")
+        for c in ".,;":
+            cmd = cmd.replace(c, "")
+
+        logging.debug("Executing voice command '%s'..." % cmd)
+        responseHandle = VoiceResponse(cmd, user, channel, TTS, AUDIO_MANAGER)
+
+        try:
+            await processCommand(responseHandle, COMMANDS, CONFIG_MANAGER, client, DATABASE_MANAGER, AUDIO_MANAGER)
+        except:
+            logging.exception("Error happened in processCommand for voice command:")
+
+        return
+
+    if CONFIG_MANAGER.getElementText("bot.chat.aivoice", "off").lower() != "off":
+        msg = FakeMessage(text, user, channel)
+        ret = await CONVERSATION_SIMULATOR.respond(msg)
+
+        s = audio.PCMSound(await TTS.synthesize(ret))
+        AUDIO_MANAGER.playSound(s, channel, False)
+    return
+
+if USE_VOICECOM:
+    CONNECTIONLISTENER.registerVoiceCommandCallback(voice_cb)
 
 async def save():
 
@@ -1153,7 +938,7 @@ async def on_message(msg):
 
     if msg.content.startswith(CMD_PREFIX) and not msg.author.id == client.user.id: #command detected | We don't want the bot to be able to input commands
         
-        await processCommand(ResponseManager(client=client, msg=msg), COMMANDS, CONFIG_MANAGER, client, DATABASE_MANAGER, AUDIO_MANAGER)
+        await processCommand(ChatResponse(client, msg), COMMANDS, CONFIG_MANAGER, client, DATABASE_MANAGER, AUDIO_MANAGER)
 
     #Crashes Wacky Emoji Copy Pasta Warehouse And Emporium
     #elif msg.author.id == "125311707919679488":
@@ -1297,7 +1082,7 @@ async def on_message(msg):
 
 
 @client.event
-async def on_voice_state_update(before,after):
+async def on_voice_state_update(before,after,what):
 
     #Voice line handling
     if (after.voice_channel and after.voice_channel != before.voice_channel): #if the user is connected and has changed his voice channel (this may mean he just joined)
