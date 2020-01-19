@@ -23,7 +23,7 @@ before_script:
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
-  - pip install -U discord.py
+  - pip install -U discord.py[voice]
   - pip install -U youtube_dl
   #- pip install -U nacl
 
