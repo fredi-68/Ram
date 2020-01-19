@@ -28,12 +28,19 @@ before_script:
   #- pip install -U nacl
 
 test:
+  stage: test
   script:
   - python -m unittest discover
 
 run:
+  stage: build
   script:
-  - python ProtOS_Bot.py
+  - echo "nothing here yet"
   artifacts:
     paths:
     - dist/*.whl
+
+staging:
+  stage: stage
+  script:
+  - git push production master:HEAD
