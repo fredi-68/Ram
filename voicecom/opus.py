@@ -35,15 +35,15 @@ class DecoderStruct(ctypes.Structure):
 DecoderStructPtr = ctypes.POINTER(DecoderStruct)
 
 #Set argtypes:
+if HAS_OPUS:
+    _lib.opus_decode.argtypes = [DecoderStructPtr, c_char_ptr, ctypes.c_int32, c_int16_ptr, ctypes.c_int, ctypes.c_int]
+    _lib.opus_decode.restype = ctypes.c_int
 
-_lib.opus_decode.argtypes = [DecoderStructPtr, c_char_ptr, ctypes.c_int32, c_int16_ptr, ctypes.c_int, ctypes.c_int]
-_lib.opus_decode.restype = ctypes.c_int
+    _lib.opus_decoder_create.argtypes = [ctypes.c_int, ctypes.c_int, c_int_ptr]
+    _lib.opus_decoder_create.restype = DecoderStructPtr
 
-_lib.opus_decoder_create.argtypes = [ctypes.c_int, ctypes.c_int, c_int_ptr]
-_lib.opus_decoder_create.restype = DecoderStructPtr
-
-_lib.opus_decoder_destroy.argtypes = [DecoderStructPtr]
-_lib.opus_decoder_destroy.restype = None
+    _lib.opus_decoder_destroy.argtypes = [DecoderStructPtr]
+    _lib.opus_decoder_destroy.restype = None
 
 class OpusDecoder(discord.opus.Encoder):
 
