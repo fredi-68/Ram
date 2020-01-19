@@ -41,6 +41,6 @@ run:
     - dist/*.whl
 
 staging:
-  stage: stage
+  stage: deploy
   script:
   - git push production master:HEAD
