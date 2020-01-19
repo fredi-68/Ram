@@ -153,7 +153,7 @@ class ChannelHandle(asyncio.DatagramProtocol):
         bisect.insort(buffer, packet) #This should be more efficient than inserting and sorting later
         if len(buffer) > MAX_BUFFER_SIZE:
             self.logger.debug("Rendering last %i packets for SSRC %i..." % (BUFFER_CLEAR_SIZE, packet.ssrc))
-            data = self._readPackets(BUFFER_CLEAR_SIZE, packet.ssrc) #the -1 is a fail safe
+            data = self._readPackets(BUFFER_CLEAR_SIZE, packet.ssrc)
             self.listener.write(data, packet.ssrc, self)
 
     def datagram_received(self, data, addr):
