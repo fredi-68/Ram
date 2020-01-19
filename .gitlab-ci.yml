@@ -27,6 +27,10 @@ before_script:
   - pip install -U youtube_dl
   #- pip install -U nacl
 
+test:
+  script:
+  - python unittest discover
+
 run:
   script:
   - python ProtOS_Bot.py
