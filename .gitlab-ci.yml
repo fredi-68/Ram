@@ -28,7 +28,7 @@ before_script:
   #- pip install -U nacl
 
 test:
-  stage: test
+  stage: build
   script:
   - python -m unittest discover
 
