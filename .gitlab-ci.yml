@@ -25,7 +25,7 @@ before_script:
   - source venv/bin/activate
   - pip install -U discord.py
   - pip install -U youtube_dl
-  - pip install -U nacl
+  #- pip install -U nacl
 
 run:
   script:
