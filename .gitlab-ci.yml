@@ -40,7 +40,7 @@ run:
     paths:
     - dist/*.whl
 
-staging:
-  stage: deploy
-  script:
-  - git push production master:HEAD
+#staging:
+#  stage: deploy
+#  script:
+#  - git push production master:HEAD

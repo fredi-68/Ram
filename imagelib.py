@@ -402,6 +402,19 @@ class Image(io.RawIOBase):
 
                     line += " " + words.pop(0)
                     lineWidth += spaceWidth + sizes[0]
+
+                else:
+                    #an issue can occur here if a line consists of only one word.
+                    #in this case, the while loop never runs, but the first word is
+                    #still pulled from the queue. If it is too wide to fit the line,
+                    #the loop still exits due to the height of the line matching
+                    #the maximum height of the cell.
+                    #the solution is to check again for width limits if the loop terminates
+                    #without a break statement
+                    if lineWidth > box.width:
+                        totalHeight = box.height + 1 #make sure that the loop does not exit prematurely
+                        break
+                    
                 totalHeight += size
                 #totalHeight += font.size(line)[1]
 
