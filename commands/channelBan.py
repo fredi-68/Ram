@@ -22,11 +22,11 @@ class MyCommand(Command):
 
             channel = self.msg.channel #use the channel of the caller
 
-        elif not isinstance(channel, discord.Channel):
+        elif not isinstance(channel, discord.TextChannel):
             await self.respond("Not a valid channel identifier.", True)
             return
 
-        db = self.db.getServer(channel.server.id) #get the server database for this channel (may be a different server than the caller)
+        db = self.db.getServer(channel.guild.id) #get the server database for this channel (may be a different server than the caller)
         ds = db.createDatasetIfNotExists("blockedChannels", {"channelID": channel.id}) #fetch the dataset before action check, because we need it anyways
 
         if action == "ban":
