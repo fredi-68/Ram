@@ -7,7 +7,8 @@ class MyCommand(Command):
 
         self.name = "assert"
         self.desc = "Process logic instructions."
-        self.permissions.administrator = True
+        #self.permissions.administrator = True
+        self.ownerOnly = True
         self.addArgument(Argument("statement", CmdTypes.STR))
 
     async def call(self, statement, **kwargs):

@@ -1082,7 +1082,7 @@ async def on_message(msg):
 
 
 @client.event
-async def on_voice_state_update(before,after,what):
+async def on_voice_state_update(before, after, what):
 
     #Voice line handling
     if (after.voice_channel and after.voice_channel != before.voice_channel): #if the user is connected and has changed his voice channel (this may mean he just joined)
@@ -1100,6 +1100,24 @@ async def on_voice_state_update(before,after,what):
                     sound = audio.FFMPEGSound(filepath)
                     AUDIO_MANAGER.playSound(sound, after.voice_channel, sync=False)
                     return
+
+@client.event
+async def on_guild_update(before, after):
+    changed_from = before.name
+    changed_to = after.name
+    if changed_from != changed_to:
+        #post a message to the audit log channel
+
+        msg = """
+        Aids fucked up the server again.
+        Days since last catastrophic mistake: `0`
+        """
+
+        db = DATABASE_MANAGER.getServer(after.id)
+        dsList = db.enumerateDatasets("auditLogChannels")
+        for i in dsList:
+            dch = after.get_channel(i.getValue("channelID"))
+            await dch.send(msg)
 
 @client.event
 async def on_resumed():
