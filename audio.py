@@ -437,9 +437,8 @@ class ChannelStream(discord.AudioSource):
         if (not self._player) or self._player._end.is_set():
             #here we hack into the discord.py voice client to get the AudioPlayer object,
             #which is necessary for our channel stream to control audio playback.
-            self._player = AudioPlayer(self, self.voice_client, after=self.after)
-            self.voice_client._player = self._player
-            self._player.start()
+            self.voice_client.play(self, after=self.after)
+            self._player = self.voice_client._player
 
     def cleanUp(self):
 
