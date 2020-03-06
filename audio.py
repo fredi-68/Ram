@@ -24,6 +24,7 @@ import io
 
 import discord
 from discord.player import AudioPlayer
+from discord.opus import Encoder
 
 from version import S_TITLE_VERSION
 
@@ -260,9 +261,8 @@ class FFMPEGSound(Sound):
     def prepare(self, channel):
 
         self.logger.debug("Preparing FFMPEG sound to play on channel %s..." % channel.voice_client.channel.name)
-        encoder = channel.voice_client.encoder
-        self._probe_target(encoder.SAMPLING_RATE, encoder.CHANNELS)
-        self.process = self._create_player(encoder.SAMPLING_RATE, encoder.CHANNELS)
+        self._probe_target(Encoder.SAMPLING_RATE, Encoder.CHANNELS)
+        self.process = self._create_player(Encoder.SAMPLING_RATE, Encoder.CHANNELS)
 
     def play(self):
 
@@ -388,7 +388,7 @@ class ChannelStream(discord.AudioSource):
         self.volume = 1.0
         self.crossfade = False
         self.crossfadeDuration = 5
-        self.crossfadeSamples = voice_client.encoder.SAMPLING_RATE * self.crossfadeDuration
+        self.crossfadeSamples = Encoder.SAMPLING_RATE * self.crossfadeDuration
         self._playing = []
         self._queue = collections.deque()
         self._player = None

@@ -40,7 +40,7 @@ run:
     paths:
     - dist/*.whl
 
-#staging:
-#  stage: deploy
-#  script:
-#  - git push production master:HEAD
+deploy:
+  stage: deploy
+  script:
+  - git push http://192.168.1.228/fredi_68/protos-discord-bot-production.git HEAD

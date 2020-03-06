@@ -25,6 +25,10 @@
     <Compile Include="audio.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="commands\evalCmd.py" />
+    <Compile Include="commands\theList.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="voicecom\channel.py" />
     <Compile Include="voicecom\constants.py" />
     <Compile Include="voicecom\enums.py" />
