@@ -43,4 +43,4 @@ run:
 deploy:
   stage: deploy
   script:
-  - git push http://ram_deploy:$DEPLOY_PWD@192.168.1.228/fredi_68/protos-discord-bot-production.git
+  - git push http://ram_deploy:$DEPLOY_PWD@192.168.1.228/fredi_68/protos-discord-bot-production.git HEAD:master
