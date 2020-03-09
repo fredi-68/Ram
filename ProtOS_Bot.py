@@ -393,10 +393,19 @@ class CmdQuote(Command):
 
         self.name = "quote"
         self.aliases.append("qt")
-        self.desc = "Access member quote storage."
+        self._original_desc = "Access member quote storage."
+        self.desc = self._original_desc
         self.addArgument(Argument("user", CmdTypes.STR, True))
         self.addArgument(Argument("mode", CmdTypes.STR, True))
         self.addArgument(Argument("quote", CmdTypes.STR, True))
+
+    async def getHelp(self):
+        
+        #Update command description to include a list of all quote stores
+        res = chatutils.mdCode(", ".join(QUOTE_MANAGER.files.keys()))
+        self.desc = self._original_desc + "\n\nAvailable quote sources:\n%s" % res
+
+        return await super().getHelp()
 
     async def call(self, user=None, quote=None, mode=None, **kwargs):
 
@@ -1085,8 +1094,8 @@ async def on_message(msg):
 async def on_voice_state_update(before, after, what):
 
     #Voice line handling
-    if (after.voice_channel and after.voice_channel != before.voice_channel): #if the user is connected and has changed his voice channel (this may mean he just joined)
-        if after.guild.voice_client and (after.voice_channel == after.guild.voice_client.channel): #we are in the same channel as our target
+    if (after.channel and after.channel != before.channel): #if the user is connected and has changed his voice channel (this may mean he just joined)
+        if after.guild.voice_client and (after.channel == after.guild.voice_client.channel): #we are in the same channel as our target
 
             #Use new dynamic voiceline handling (voicelines are compared by User ID / Filename instead of a dictionary lookup
             #This isn't necessarily any faster but it is more convenient and doesn't require a restart to assign voicelines
@@ -1098,7 +1107,7 @@ async def on_voice_state_update(before, after, what):
                         return
                     filepath = SOUND_DIR+"voicelines/" + i + "/"+random.choice(files)
                     sound = audio.FFMPEGSound(filepath)
-                    AUDIO_MANAGER.playSound(sound, after.voice_channel, sync=False)
+                    AUDIO_MANAGER.playSound(sound, after.channel, sync=False)
                     return
 
 @client.event
