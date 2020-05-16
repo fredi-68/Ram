@@ -57,7 +57,7 @@ class CmdPin(Command):
 
         self.addSubcommand(self.PinConfig())
 
-        self.initLib()
+        #self.initLib()
 
     def initLib(self):
 
