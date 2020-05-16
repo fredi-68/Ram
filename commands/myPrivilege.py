@@ -36,7 +36,11 @@ class MyCommand(Command):
             wrapperList = list(map(DatasetWrapper, dslist))
             wrapperList.sort()
             for i in wrapperList:
-                rets += self.msg.guild.get_member(i.dataset.getValue("user")).name + ": " + str(i.dataset.getValue("points"))
+                try:
+                    rets += self.msg.guild.get_member(i.dataset.getValue("user")).name + ": " + str(i.dataset.getValue("points"))
+                except AttributeError:
+                    #this happens when we try to display a user who is not in this server, since the value returned by get_member() is None in this case.
+                    pass
 
             await self.respond(rets, True)
             return
