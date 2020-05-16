@@ -865,7 +865,7 @@ class DSLInterpreter():
                     results.append(result)
 
         if results:
-            self.client.loop.create_task(self.client.send_message(message.channel, "%s, %s" % (message.author.mention, "\n".join(results))))
+            self.client.loop.create_task(message.channel.send("%s, %s" % (message.author.mention, "\n".join(results))))
             return True
 
         return False
