@@ -1137,13 +1137,30 @@ async def on_resumed():
 @client.event
 async def on_reaction_add(reaction, user):
 
+    msg = reaction.message
+    #reaction auto pin feature
+    db = DATABASE_MANAGER.getDatabaseByMessage(msg)
+    ds = db.enumerateDatasets("pinReactionSettings")
+    if ds:
+        cfg = ds[0]
+        e = cfg.getValue("emote")
+        c = cfg.getValue("count")
+        mod = cfg.getValue("needs_mod")
+        for reaction in msg.reactions:
+            if e and e != str(reaction.emoji):
+                continue #skip reactions that don't match the configuration
+            if reaction.count >= c:
+                #TODO: implement mod check
+                await msg.pin()
+                break
+
     #upvote :Ram: emoji if someone added it to a message
     if isinstance(reaction.emoji, discord.Emoji):
         name = reaction.emoji.name
     else:
         name = reaction.emoji
     if name.lower() == "ram" and not reaction.me: #This should work for either "ram", "Ram", ":ram:" or ":Ram:"
-        await client.add_reaction(reaction.message, reaction.emoji)
+        await msg.add_reaction(reaction.emoji)
 
 @client.event
 async def on_member_update(before, after):

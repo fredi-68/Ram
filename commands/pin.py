@@ -24,6 +24,8 @@ class CmdPin(Command):
                 ds = db.createDatasetIfNotExists("pinReactionSettings", {"count": count, "emote": emote, "needs_mod": needs_mod})
                 ds.update()
 
+                await self.respond("Enabled reaction based pinning.")
+
         def setup(self):
 
             self.name = "reaction"
