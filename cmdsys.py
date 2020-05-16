@@ -33,6 +33,7 @@ class CmdTypes(enum.Enum):
     SERVER = enum.auto()
     CHANNEL = enum.auto()
     ROLE = enum.auto() #new type
+    EMOTE = enum.auto() #TODO: Implement
 
 #THESE CONSTANTS HAVE BEEN DEPRECATED IN FAVOUR OF
 #CmdTypes ENUM. THERE WILL BE NO EFFORT MADE TO
@@ -55,6 +56,24 @@ CLEANUP_FUNCTIONS = []
 SUPERUSERS = set()
 
 logger = logging.getLogger("Command")
+
+class CommandException(Exception):
+
+    def __init__(self, msg, mention_user=False):
+
+        self.mention_user = mention_user
+
+class CommandCallFailedException(CommandException):
+
+    pass
+
+class CommandNotFoundException(CommandException):
+
+    pass
+
+class PermissionDeniedException(CommandException):
+
+    pass
 
 def cleanUpRegister(func, *args, **kwargs):
 
@@ -180,91 +199,31 @@ def loadCommands(path):
     
     return commands
 
-async def processCommand(responseHandle, commands, config, client, databaseManager, audioManager):
+async def _processCommand(responseHandle, commands, config, client, databaseManager, audioManager, prefix, cmd, args):
 
     """
-    Interface for unified command handling
+    Internal command parser.
+
+    Raises various exceptions which are converted to messages by the processCommand wrapper function.
     """
-
-    cmd_prefix = config.getElementText("bot.prefix", "+")
-
-    icons = { #Discord chat icons
-        "ok": config.getElementText("bot.icons.ok"),
-        "forbidden": config.getElementText("bot.icons.forbidden"),
-        "error": config.getElementText("bot.icons.error"),
-        "pin": config.getElementText("bot.icons.pin")
-        }
-
-    content = await responseHandle.getCommand()
-    if responseHandle.is_chat():
-        content = content[len(cmd_prefix):] #get the content of the message (without the prefix)
-
-    #Separate the words for convenience
-    words = chatutils.splitCommandString(content)
-    if len(words) < 1:
-        responseHandle.close()
-        return #not enough words - empty message?
-
-    if words[0] in ["help", "h", "?"]: #SPECIAL CASE: This command is hardcoded since it needs access to all other commands
-        if len(words) > 1: #The user wants help on a specific command
-            for i in commands:
-                if i.name == words[1] and not i.hidden: #make sure hidden commands don't come up in the search
-                    #set environment variables for external commands
-                    i._setVariables(client, config, responseHandle, databaseManager, audioManager)
-                    await responseHandle.reply(await i.getHelp(), False) #generate help information and send it to the user
-                    responseHandle.close()
-                    return
-            await responseHandle.reply(icons["error"] + " That command does not exist.", True)
-        else:
-            #print ALL commands and their usages
-            hs = "commands:\n\n"
-            maxlen = 20 #maximum size of commands
-            for i in commands:
-                if i.hidden:
-                    continue #make sure hidden commands don't come up in the search
-
-                #set environment variables for external commands
-                i._setVariables(client, config, responseHandle, databaseManager, audioManager)
-
-                #calculate length of command string
-                spacing = max(1, maxlen - (len(cmd_prefix) + len(i.name))) #how many spaces do we need to fill? Also guarantee at least one space
-                hs += cmd_prefix + i.name + " " * spacing + i.getUsage() + "\n"
-
-            spacing = max(1, maxlen - (len(cmd_prefix) + 4))
-            hs += cmd_prefix + "help" + " " * spacing + "Usage: +help, +h, +? -> Get this help page :D"
-            await responseHandle.reply(hs, False) #generate help information and send it to the user
-        responseHandle.close()
-        return
-
-    #if responseHandle.is_chat():
-    #    if responseHandle.getMessage().channel.is_private: #ignore commands in DMs
-    #        await responseHandle.reply(icons["forbidden"]+" commands are disabled for DMs as of now.")
-    #        responseHandle.close()
-    #        return
 
     for i in commands:
         patterns = [i.name]
         patterns.extend(i.aliases) #we are looking for the command name as well as all aliases
-        if words[0] in patterns: #first word matches search pattern - this is the command we are looking for
+        if cmd in patterns: #first word matches search pattern - this is the command we are looking for
 
             #is the user allowed to use this command?
             if not responseHandle.is_rpc():
 
                 if not i.allowChat:
-                    await responseHandle.reply(icons["forbidden"] + " This command is not available in chat!")
-                    responseHandle.close()
-                    return
+                    raise PermissionDeniedException("This command is not available in chat!")
                 if i.ownerOnly and responseHandle.getID() != config.getElementInt("bot.owner"): #owner only command
                     if responseHandle.getID() == 181072803439706112:
-                        await responseHandle.reply("Sorry Aidan, but I cannot let you do that.")
+                        raise PermissionDeniedException("Sorry Aidan, but I cannot let you do that.")
                     else:
-                        await responseHandle.reply(interaction.denied.getRandom(), True)
-                    responseHandle.close()
-                    return
+                        raise PermissionDeniedException(interaction.denied.getRandom())
                 if not (responseHandle.getID() in SUPERUSERS or responseHandle.getPermission().is_superset(i.permissions)): #insufficient permissions
-                    await responseHandle.reply(icons["forbidden"] + " You do not have sufficient permission to use this command.", True)
-                    responseHandle.close()
-                    return
+                    raise PermissionDeniedException("You do not have sufficient permission to use this command.")
 
                 #Is this user blocked?.
                 if responseHandle.is_chat():
@@ -273,20 +232,28 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
 
                         ds = db.createDatasetIfNotExists("blockedUsers", {"userID": responseHandle.getMessage().author.id})
                         if ds.exists(): #FOUND YOU
-                            await responseHandle.reply("You have been blocked from using bot commands. If you believe that this is an error please report this to the bot owner.", True)
-                            responseHandle.close()
-                            return
+                            raise PermissionDeniedException("You have been blocked from using bot commands. If you believe that this is an error please report this to the bot owner.")
 
             elif responseHandle.is_rpc():
                 if not i.allowConsole:
-                    await responseHandle.reply(icons["forbidden"]+" This command is not available on console!")
-                    responseHandle.close()
-                    return
+                    raise PermissionDeniedException("This command is not available on console!")
 
             #process arguments
 
+            #before searching arguments, see if there are any subcommands
+            if i.subcommands:
+                #is the user trying to call a subcommand?
+                try:
+                    await _processCommand(responseHandle, i.subcommands, config, client, databaseManager, audioManager, "", args[0], args[1:])
+                except CommandNotFoundException as e:
+                    #that would be a no
+                    pass
+                else:
+                    #subcommand handled user call, return
+                    return
+
             #first, check if we have the right amount of arguments.
-            argamt = len(words) - 1
+            argamt = len(args)
             oblargs = [] #obligatory arguments (we will need these later)
             optargs = [] #optional arguments
 
@@ -298,7 +265,7 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
 
                 #set environment attributes for external commands
                 i._setVariables(client, config, responseHandle, databaseManager, audioManager)
-                await responseHandle.reply(icons["error"] + " Not enough arguments\n" + i.getUsage(), True)
+                raise CommandCallFailedException("Not enough arguments\n" + i.getUsage())
 
             else:
 
@@ -312,34 +279,30 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
 
                 arguments = {}
 
-                for j in range(0, len(words) - 1): #exclude the command itself
+                for j in range(0, len(args)):
                     
-                    arg = words[j + 1]
+                    arg = args[j]
                     if j >= len(i.arguments):
                         break #we done
                     elif j >= len(i.arguments) - 1:
                         #only one left... better make it count
-                        arg = " ".join(words[j + 1:]) #make one large argument consuming the rest of the argstring
-                    errorStr = icons["error"] + " Illegal argument type for " + i.arguments[j].name + ": "
+                        arg = " ".join(args[j:]) #make one large argument consuming the rest of the argstring
+                    errorStr = "Illegal argument type for " + i.arguments[j].name + ": "
                     t = i.arguments[j].type
 
                     if t == CmdTypes.INT:
                         try:
                             arguments[i.arguments[j].name] = int(arg)
                         except:
-                            await responseHandle.reply(errorStr+" Type Int expected!", True)
-                            responseHandle.close()
-                            return
+                            raise CommandCallFailedException(errorStr+" Type Int expected!")
 
                     elif t == CmdTypes.FLOAT:
                         try:
                             arguments[i.arguments[j].name] = float(arg)
                         except:
-                            await responseHandle.reply(errorStr + " Type Float expected!", True)
-                            responseHandle.close()
-                            return
+                            raise CommandCallFailedException(errorStr + " Type Float expected!")
 
-                    elif t == CmdTypes.STR:
+                    elif t == CmdTypes.STR or t == CmdTypes.EMOTE:
                         arguments[i.arguments[j].name] = str(arg) #this one doesn't need any processing, however, we don't want the command to modify this directly
 
                     elif t == CmdTypes.BOOL:
@@ -348,19 +311,14 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                         elif arg.lower() in ["False", "false", "0"]:
                             arguments[i.arguments[j].name] = False
                         else:
-                            await responseHandle.reply(errorStr + " Type Bool expected!", True)
-                            responseHandle.close()
-                            return
+                            raise CommandCallFailedException(errorStr + " Type Bool expected!")
 
                     elif t == CmdTypes.MESSAGE:
                         if arg.lower() == "react":
                             if not responseHandle.is_chat():
-                                await responseHandle.reply("Reaction selecting is not possible for console commands!")
-                                responseHandle.close()
-                                return
+                                raise CommandCallFailedException("Reaction selecting is not possible for console commands!")
                             message = await dialogReact(responseHandle.getMessage().channel, responseHandle.getMessage().author, client, "Please react to the message you are trying to select with an emoji of your choice.")
                             if not message:
-                                responseHandle.close()
                                 return #something went wrong, most likely a timeout
                             arguments[i.arguments[j].name] = message #reaction selector worked, arg parsing done
                             continue
@@ -372,24 +330,18 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                             try:
                                 arguments[i.arguments[j].name] = await client.get_channel(ch).fetch_message(msg)
                             except:
-                                await responseHandle.reply(errorStr + " Not a valid channel:message ID!", True)
-                                responseHandle.close()
-                                return
+                                raise CommandCallFailedException(errorStr + " Not a valid channel:message ID!")
                             continue
 
                         try:
                             arguments[i.arguments[j].name] = await responseHandle.getMessage().channel.fetch_message(int(arg)) #This was an oversight on my part. The current implementation REQUIRES the message to be in the same channel as the caller (thus won't work on console)
                         except:
-                            await responseHandle.reply(errorStr + " Not a valid message ID!", True)
-                            responseHandle.close()
-                            return
+                            raise CommandCallFailedException(errorStr + " Not a valid message ID!")
 
                     elif t == CmdTypes.CHANNEL:
                         if arg.lower() == "post":
                             if not responseHandle.is_chat():
-                                await responseHandle.reply("Post selecting is not possible for console commands!")
-                                responseHandle.close()
-                                return
+                                raise CommandCallFailedException("Post selecting is not possible for console commands!")
                             await responseHandle.reply("Please post a message in the channel you are trying to select. It will be automatically deleted.")
                             message = await client.wait_for_message(author=responseHandle.getMessage().author, timeout=30)
                             if not message:
@@ -414,17 +366,13 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                         try:
                             arguments[i.arguments[j].name] = client.get_channel(arg)
                         except:
-                            await responseHandle.reply(errorStr + " Not a valid channel ID!", True)
-                            responseHandle.close()
-                            return
+                            raise CommandCallFailedException(errorStr + " Not a valid channel ID!")
 
                     elif t == CmdTypes.SERVER:
                         try:
                             arguments[i.arguments[j].name] = client.get_server(int(arg))
                         except:
-                            await responseHandle.reply(errorStr + " Not a valid server ID!", True)
-                            responseHandle.close()
-                            return
+                            raise CommandCallFailedException(errorStr + " Not a valid server ID!")
 
                     elif t == CmdTypes.MEMBER:
 
@@ -434,9 +382,7 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                             try:
                                 arguments[i.arguments[j].name] = client.get_server(srv).get_member(mem)
                             except:
-                                await responseHandle.reply(errorStr + " Not a valid server:member ID!", True)
-                                responseHandle.close()
-                                return
+                                raise CommandCallFailedException(errorStr + " Not a valid server:member ID!")
                             continue
 
                         if not responseHandle.is_chat():
@@ -502,9 +448,7 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                                     break
 
                             if not userFound:
-                                await responseHandle.reply(errorStr + " User can't be found.", True)
-                                responseHandle.close()
-                                return
+                                raise CommandCallFailedException(errorStr + " User can't be found.")
 
                     elif t == CmdTypes.ROLE:
 
@@ -513,9 +457,7 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                             try:
                                 arguments[i.arguments[j].name] = chatutils.getRole(client.get_server(srv), role)
                             except:
-                                await responseHandle.reply(errorStr + " Not a valid server:role ID!", True)
-                                responseHandle.close()
-                                return
+                                raise CommandCallFailedException(errorStr + " Not a valid server:role ID!")
                             continue
 
                         if not responseHandle.is_chat():
@@ -543,18 +485,79 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                 #set environment variables for external commands
                 i._setVariables(client, config, responseHandle, databaseManager, audioManager)
                 #call command
-                try:
-                    await i.call(**arguments)
-                except BaseException as e:
-                    logging.exception("Command execution failed for " + i.name+": ")
-                    if config.getElementInt("bot.debug.showCommandErrors", 0, False):
-                        tb = chatutils.mdEscape(traceback.format_exc())
-                        await responseHandle.reply("Command execution failed for %s:\n %s\n\nYou are receiving this message because command debugging is enabled.\nIt can be disabled in the config files." % (i.name, tb), True)
+                await i.call(**arguments)
 
-            responseHandle.close()
             return #exit command handler
 
-    await responseHandle.reply(icons["error"]+" That command doesn't exist.", True) #if we don't find a command let the user know about it
+    raise CommandNotFoundException("That command doesn't exist.") #if we don't find a command let the user know about it
+
+async def processCommand(responseHandle, commands, config, client, databaseManager, audioManager):
+
+    """
+    Interface for unified command handling
+    """
+
+    cmd_prefix = config.getElementText("bot.prefix", "+")
+
+    icons = { #Discord chat icons
+        "ok": config.getElementText("bot.icons.ok"),
+        "forbidden": config.getElementText("bot.icons.forbidden"),
+        "error": config.getElementText("bot.icons.error"),
+        "pin": config.getElementText("bot.icons.pin")
+        }
+
+    content = await responseHandle.getCommand()
+    if responseHandle.is_chat():
+        content = content[len(cmd_prefix):] #get the content of the message (without the prefix)
+
+    #Separate the words for convenience
+    words = chatutils.splitCommandString(content)
+    if len(words) < 1:
+        responseHandle.close()
+        return #not enough words - empty message?
+
+    if words[0] in ["help", "h", "?"]: #SPECIAL CASE: This command is hardcoded since it needs access to all other commands
+        if len(words) > 1: #The user wants help on a specific command
+            for i in commands:
+                if i.name == words[1] and not i.hidden: #make sure hidden commands don't come up in the search
+                    #set environment variables for external commands
+                    i._setVariables(client, config, responseHandle, databaseManager, audioManager)
+                    await responseHandle.reply(await i.getHelp(), False) #generate help information and send it to the user
+                    responseHandle.close()
+                    return
+            await responseHandle.reply(icons["error"] + " That command does not exist.", True)
+        else:
+            #print ALL commands and their usages
+            hs = "commands:\n\n"
+            maxlen = 20 #maximum size of commands
+            for i in commands:
+                if i.hidden:
+                    continue #make sure hidden commands don't come up in the search
+
+                #set environment variables for external commands
+                i._setVariables(client, config, responseHandle, databaseManager, audioManager)
+
+                #calculate length of command string
+                spacing = max(1, maxlen - (len(cmd_prefix) + len(i.name))) #how many spaces do we need to fill? Also guarantee at least one space
+                hs += cmd_prefix + i.name + " " * spacing + i.getUsage() + "\n"
+
+            spacing = max(1, maxlen - (len(cmd_prefix) + 4))
+            hs += cmd_prefix + "help" + " " * spacing + "Usage: +help, +h, +? -> Get this help page :D"
+            await responseHandle.reply(hs, False) #generate help information and send it to the user
+        responseHandle.close()
+        return
+
+    try:
+        await _processCommand(responseHandle, commands, config, client, databaseManager, audioManager, cmd_prefix, words[0], words[1:])
+    except CommandException as e:
+        await responseHandle.reply(icons["error"] + " " + str(e), e.mention_user)
+    except BaseException as e:
+        logging.exception("Command execution failed: ")
+        if config.getElementInt("bot.debug.showCommandErrors", 0, False):
+            tb = chatutils.mdEscape(traceback.format_exc())
+            await responseHandle.reply("Command execution failed:\n %s\n\nYou are receiving this message because command debugging is enabled.\nIt can be disabled in the config files." % tb, True)
+
+    responseHandle.close()
 
 class Argument():
 
@@ -589,6 +592,7 @@ class Command():
         self.desc = "A command."
         self.arguments = []
         self.permissions = discord.Permissions.none()
+        self.subcommands = []
 
         #Command flags (can be set by user)
         self.ownerOnly = False
@@ -716,7 +720,17 @@ class Command():
         Add an argument
         """
 
+        assert isinstance(argument, Argument)
         self.arguments.append(argument)
+
+    def addSubcommand(self, command):
+
+        """
+        Add a subcommand to this command.
+        """
+
+        assert isinstance(command, Command)
+        self.subcommands.append(command)
 
     def getUsage(self):
 

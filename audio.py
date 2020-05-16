@@ -434,7 +434,7 @@ class ChannelStream(discord.AudioSource):
             if len(self._queue) < 1:
                 return
 
-        if (not self._player) or self._player._end.is_set():
+        if (self._player is None) or self._player._end.is_set():
             #here we hack into the discord.py voice client to get the AudioPlayer object,
             #which is necessary for our channel stream to control audio playback.
             self.voice_client.play(self, after=self.after)

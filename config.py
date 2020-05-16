@@ -360,12 +360,14 @@ class DatasetHandle():
         Errors that occur while converting types will not be suppressed.
         """
 
+        type = type.lower()
+
         if type in ("text"):
             retValue = str(value)
             if ";" in retValue:
                 raise ValueError("Unexpected symbol ';' in value of type str.") #This is a common SQL injection technique
             return retValue
-        elif type in ("int", "INTEGER"):
+        elif type in ("int", "integer"):
             if value == None:
                 return 0
             return int(value)
@@ -790,6 +792,7 @@ class DatabaseHandle():
         self.createTableIfNotExists("auditLogChannels", {"channelID":"int"}, False)
         self.createTableIfNotExists("timeoutRole", {"roleID":"int"}, False)
         self.createTableIfNotExists("timeoutCount", {"userID":"int", "count":"int"}, False)
+        self.createTableIfNotExists("pinReactionSettings", {"count": "int", "emote": "text", "needs_mod": "int"}, False)
 
         self._db.commit()
 
@@ -928,7 +931,7 @@ class DatabaseHandle():
         for i in req.items(): #Create our query definitions
             q.append(i[0]+"=:"+i[0])
 
-        qs = "SELECT *, ROWID FROM %s WHERE (%s)" % (dataset.getTable(), ",".join(q))
+        qs = "SELECT *, ROWID FROM %s WHERE (%s)" % (dataset.getTable(), " AND ".join(q))
         self._execute(qs, req)
         res = self._cursor.fetchall()
 

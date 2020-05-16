@@ -4,6 +4,47 @@ from cmdsys import *
 
 class CmdPin(Command):
 
+    #Subcommands
+    class PinConfig(Command):
+
+        class PinConfigEmote(Command):
+
+            def setup(self):
+
+                self.name = "enable"
+                self.desc = "Configure the emote used for reaction based pinning."
+
+                self.addArgument(Argument("count", CmdTypes.INT, False))
+                self.addArgument(Argument("emote", CmdTypes.EMOTE, True))
+                self.addArgument(Argument("needs_mod", CmdTypes.BOOL, True))
+
+            async def call(self, count, emote="", needs_mod=False):
+
+                db = self.db.getServer(self.msg.guild.id) #get the server database
+                ds = db.createDatasetIfNotExists("pinReactionSettings", {"count": count, "emote": emote, "needs_mod": needs_mod})
+                ds.update()
+
+        def setup(self):
+
+            self.name = "reaction"
+            self.desc = "Configure the reaction based pin interface. Action should be either 'enable' or 'disable'."
+
+            self.addArgument(Argument("action", CmdTypes.STR, False))
+            self.addSubcommand(self.PinConfigEmote())
+
+        async def call(self, action):
+
+            if action.lower() != "disable":
+                await self.respond("action must be either 'enable' or 'disable'.", True)
+                return
+
+            db = self.db.getServer(self.msg.guild.id) #get the server database
+            dsList = db.enumerateDatasets("pinReactionSettings")
+            for i in dsList:
+                i.delete()
+
+            await self.respond("Disabled reaction based pinning.")
+
     def setup(self):
 
         self.name = "pin"
@@ -11,6 +52,8 @@ class CmdPin(Command):
         self.permissions.administrator = True
         self.addArgument(Argument("message", CmdTypes.MESSAGE))
         self.allowConsole = False
+
+        self.addSubcommand(self.PinConfig())
 
         self.initLib()
 
