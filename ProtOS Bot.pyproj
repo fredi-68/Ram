@@ -29,6 +29,7 @@
     <Compile Include="commands\theList.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="responseManager.py" />
     <Compile Include="voicecom\channel.py" />
     <Compile Include="voicecom\constants.py" />
     <Compile Include="voicecom\enums.py" />

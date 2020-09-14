@@ -1091,23 +1091,26 @@ async def on_message(msg):
 
 
 @client.event
-async def on_voice_state_update(before, after, what):
+async def on_voice_state_update(what, before, after):
+
+    before_channel = before.channel
+    after_channel = after.channel
 
     #Voice line handling
-    if (after.channel and after.channel != before.channel): #if the user is connected and has changed his voice channel (this may mean he just joined)
-        if after.guild.voice_client and (after.channel == after.guild.voice_client.channel): #we are in the same channel as our target
+    if (after_channel and after_channel != before_channel): #if the user is connected and has changed his voice channel (this may mean he just joined)
+        if what.guild.voice_client and (after_channel == what.guild.voice_client.channel): #we are in the same channel as our target
 
             #Use new dynamic voiceline handling (voicelines are compared by User ID / Filename instead of a dictionary lookup
             #This isn't necessarily any faster but it is more convenient and doesn't require a restart to assign voicelines
             dir = os.listdir(SOUND_DIR + "voicelines")
             for i in dir:
-                if os.path.isdir(SOUND_DIR + "voicelines/" + i) and  i == after.id: #we have a voiceline folder for this member
+                if os.path.isdir(SOUND_DIR + "voicelines/" + i) and  i == str(what.id): #we have a voiceline folder for this member
                     files = os.listdir(SOUND_DIR+"voicelines/" + i)
                     if not files: #no voicelines found, return
                         return
                     filepath = SOUND_DIR+"voicelines/" + i + "/"+random.choice(files)
                     sound = audio.FFMPEGSound(filepath)
-                    AUDIO_MANAGER.playSound(sound, after.channel, sync=False)
+                    AUDIO_MANAGER.playSound(sound, after_channel, sync=False)
                     return
 
 @client.event
