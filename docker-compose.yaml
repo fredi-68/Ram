@@ -1,0 +1,10 @@
+version: '2'
+services:
+  protos-discord-bot:
+    build: http://192.168.1.228/fredi_68/protos-discord-bot-production.git
+    volumes:
+    - /etc/protos/discord/logs:/root/protos-discord-bot/logs
+    - /etc/protos/discord/chat:/root/protos-discord-bot/chat
+    - /etc/protos/discord/config:/root/protos-discord-bot/config
+    - /etc/protos/discord/sounds:/root/protos-discord-bot/sounds
+    - /etc/protos/discord/tracks:/root/protos-discord-bot/tracks
