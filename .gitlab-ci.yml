@@ -26,13 +26,13 @@ cache:
   #- add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
   #- apt-get install -y docker-ce docker-ce-cli containerd.io  
 
-  #- python -V               # Print out python version for debugging
-  #- pip install virtualenv
-  #- virtualenv venv
-  #- source venv/bin/activate
-  #- pip install -U discord.py[voice]
-  #- pip install -U youtube_dl
-  #- pip install -U nacl
+  - python -V               # Print out python version for debugging
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+  - pip install -U discord.py[voice]
+  - pip install -U youtube_dl
+  - pip install -U nacl
 
 test:
   stage: build
@@ -47,12 +47,12 @@ run:
     paths:
     - dist/*.whl
 
-build:
-  stage: build
-  script:
-  - docker build --tag protos_bot .
-  - docker image tag protos_bot $REGISTRY_URL/protos_bot
-  - docker push $REGISTRY_URL/protos_bot
+#build:
+#  stage: build
+#  script:
+#  - docker build --tag protos_bot .
+#  - docker image tag protos_bot $REGISTRY_URL/protos_bot
+#  - docker push $REGISTRY_URL/protos_bot
 
 deploy:
   stage: deploy
