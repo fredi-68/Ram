@@ -19,7 +19,7 @@ cache:
     - venv/
 
 before_script:
-  - apt-get install -y docker
+  - apt-get install -y docker-ce docker-ce-cli containerd.io
   - python -V               # Print out python version for debugging
   - pip install virtualenv
   - virtualenv venv
