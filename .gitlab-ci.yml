@@ -32,7 +32,7 @@ before_script:
   - source venv/bin/activate
   - pip install -U discord.py[voice]
   - pip install -U youtube_dl
-  - pip install -U nacl
+  - pip install -U pynacl
 
 test:
   stage: build
