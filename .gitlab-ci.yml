@@ -52,12 +52,8 @@ test:
     - python -m unittest discover
 
 build:
-  needs:
-    - job: test
   image: docker:stable
   stage: build
-  service:
-    - docker:stable-dind
   script:
     - docker build --tag $CI_REGISTRY_ADDR/$CI_IMAGE_TAG .
     - docker push $CI_REGISTRY_ADDR/$CI_IMAGE_TAG
