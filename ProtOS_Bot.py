@@ -36,6 +36,7 @@ except ImportError:
     HAS_YTDL = False
 
 if sys.path[0]: #set cwd in case that the script was started from a different directory than the bot root
+    print("Changing workdir to '%s'..." % sys.path[0])
     try:
         os.chdir(sys.path[0]) #this needs to be done before any app level modules are imported to prevent ImportErrors
     except NotADirectoryError:
