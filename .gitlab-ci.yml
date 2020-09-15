@@ -18,7 +18,7 @@ cache:
     - .cache/pip
     - venv/
 
-#before_script:
+before_script:
   #docker setup
   #- apt-get install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common
   #- curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
@@ -47,14 +47,15 @@ run:
     paths:
     - dist/*.whl
 
-#build:
-#  stage: build
-#  script:
-#  - docker build --tag protos_bot .
-#  - docker image tag protos_bot $REGISTRY_URL/protos_bot
-#  - docker push $REGISTRY_URL/protos_bot
-
-deploy:
-  stage: deploy
+build:
+  image: docker
+  stage: build
   script:
-  - git push http://ram_deploy:$DEPLOY_PWD@192.168.1.228/fredi_68/protos-discord-bot-production.git HEAD:master
+  - docker build --tag protos_bot .
+  - docker image tag protos_bot $REGISTRY_URL/protos_bot
+  - docker push $REGISTRY_URL/protos_bot
+
+#deploy:
+#  stage: deploy
+#  script:
+#  - git push http://ram_deploy:$DEPLOY_PWD@192.168.1.228/fredi_68/protos-discord-bot-production.git HEAD:master
