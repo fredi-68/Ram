@@ -26,6 +26,17 @@ cache:
   #- add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
   #- apt-get install -y docker-ce docker-ce-cli containerd.io  
 
+  #- python -V               # Print out python version for debugging
+  #- pip install virtualenv
+  #- virtualenv venv
+  #- source venv/bin/activate
+  #- pip install -U discord.py[voice]
+  #- pip install -U youtube_dl
+  #- pip install -U nacl
+
+test:
+  stage: test
+  script:
   - python -V               # Print out python version for debugging
   - pip install virtualenv
   - virtualenv venv
@@ -34,27 +45,17 @@ cache:
   - pip install -U youtube_dl
   - pip install -U nacl
 
-test:
-  stage: build
-  script:
   - python -m unittest discover
 
-run:
+build:
+  image: docker:stable
   stage: build
   script:
-  - echo "nothing here yet"
-  artifacts:
-    paths:
-    - dist/*.whl
+  - docker build --tag protos_bot .
+  - docker image tag protos_bot $REGISTRY_URL/protos_bot
+  - docker push $REGISTRY_URL/protos_bot
 
-#build:
-#  stage: build
+#deploy:
+#  stage: deploy
 #  script:
-#  - docker build --tag protos_bot .
-#  - docker image tag protos_bot $REGISTRY_URL/protos_bot
-#  - docker push $REGISTRY_URL/protos_bot
-
-deploy:
-  stage: deploy
-  script:
-  - git push http://ram_deploy:$DEPLOY_PWD@192.168.1.228/fredi_68/protos-discord-bot-production.git HEAD:master
+#  - git push http://ram_deploy:$DEPLOY_PWD@192.168.1.228/fredi_68/protos-discord-bot-production.git HEAD:master
