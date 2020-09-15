@@ -11,7 +11,7 @@ VOLUME /app/config
 VOLUME /app/sounds
 VOLUME /app/tracks
 VOLUME /app/logs
-RUN apt-get install -y gcc
+RUN apt-get update && apt-get install -y gcc libopus-dev
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
