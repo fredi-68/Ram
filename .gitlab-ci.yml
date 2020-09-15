@@ -38,7 +38,7 @@ stages:
   #- pip install -U youtube_dl
   #- pip install -U nacl
 
-test:
+test-job:
   stage: test
   script:
     - python -V               # Print out python version for debugging
@@ -51,7 +51,7 @@ test:
 
     - python -m unittest discover
 
-build:
+build-job:
   stage: build
   image:
     name: gcr.io/kaniko-project/executor:debug
@@ -61,8 +61,6 @@ build:
     - echo "{\"auths\":{\"$CI_REGISTRY_ADDR\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - echo "{\"insecure_registries\":[\"$CI_REGISTRY_ADDR\"]}" > /kaniko/.docker/daemon.json #allow insecure registry for testing TODO remove later
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
-  only:
-    - tags
 
 #deploy:
 #  stage: deploy
