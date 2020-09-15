@@ -146,6 +146,7 @@ class QuoteManager():
 
         """Load all quote files from a directory."""
 
+        os.makedirs(path, exist_ok=True) #ensure directory exists
         for i in os.listdir(self.path):
             name = i.rsplit(".",1)[0]
             self.files[name] = lineStorage(self.path+i,name)
