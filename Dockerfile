@@ -6,11 +6,11 @@ RUN mkdir config
 RUN mkdir sounds
 RUN mkdir tracks
 RUN mkdir logs
-VOLUME chat
-VOLUME config
-VOLUME sounds
-VOLUME tracks
-VOLUME logs
+VOLUME /app/chat
+VOLUME /app/config
+VOLUME /app/sounds
+VOLUME /app/tracks
+VOLUME /app/logs
 RUN apt-get install -y gcc
 COPY requirements.txt .
 RUN pip install -r requirements.txt
