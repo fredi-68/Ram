@@ -12,7 +12,7 @@ VOLUME /app/sounds
 VOLUME /app/tracks
 VOLUME /app/logs
 EXPOSE 50010/tcp
-RUN apt-get update && apt-get install -y gcc libopus-dev
+RUN apt-get update && apt-get install -y gcc libopus-dev ffmpeg
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
