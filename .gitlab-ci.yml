@@ -43,7 +43,7 @@ test:
   - source venv/bin/activate
   - pip install -U discord.py[voice]
   - pip install -U youtube_dl
-  - pip install -U nacl
+  - pip install -U pynacl
 
   - python -m unittest discover
 
@@ -51,9 +51,9 @@ build:
   image: docker:stable
   stage: build
   script:
-  - docker build --tag protos_bot .
-  - docker image tag protos_bot $REGISTRY_URL/protos_bot
-  - docker push $REGISTRY_URL/protos_bot
+  - docker build --tag $CI_IMAGE_TAG .
+  - docker image tag $CI_IMAGE_TAG $CI_REGISTRY_ADDR/$CI_IMAGE_TAG
+  - docker push $CI_REGISTRY_ADDR/$CI_IMAGE_TAG
 
 #deploy:
 #  stage: deploy
