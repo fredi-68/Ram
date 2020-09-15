@@ -22,22 +22,6 @@ stages:
   - test
   - build
 
-#before_script:
-  #docker setup
-  #- apt-get install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common
-  #- curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-  #- apt-key fingerprint 0EBFCD88
-  #- add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-  #- apt-get install -y docker-ce docker-ce-cli containerd.io  
-
-  #- python -V               # Print out python version for debugging
-  #- pip install virtualenv
-  #- virtualenv venv
-  #- source venv/bin/activate
-  #- pip install -U discord.py[voice]
-  #- pip install -U youtube_dl
-  #- pip install -U nacl
-
 test-job:
   stage: test
   script:
@@ -53,6 +37,8 @@ test-job:
 
 build-job:
   stage: build
+  # we have to override the image for building the dockerfile.
+  # since we don't need a runtime environment we can skip setting up all the requirements as well.
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
@@ -61,8 +47,3 @@ build-job:
     - echo "{\"auths\":{\"$CI_REGISTRY_ADDR\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - echo "{\"insecure_registries\":[\"$CI_REGISTRY_ADDR\"]}" > /kaniko/.docker/daemon.json #allow insecure registry for testing TODO remove later
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_ADDR/$CI_IMAGE_TAG:$CI_COMMIT_TAG
-
-#deploy:
-#  stage: deploy
-#  script:
-#    - git push http://ram_deploy:$DEPLOY_PWD@192.168.1.228/fredi_68/protos-discord-bot-production.git HEAD:master
