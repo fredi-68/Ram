@@ -788,6 +788,7 @@ ciparser = interaction.DSLParser()
 CIINTERPRETER = interaction.DSLInterpreter(client)
 CIINTERPRETER.registerAudioEngine(AUDIO_MANAGER) #make sure we can playback sounds
 logger.info("Loading scripts...")
+os.makedirs("chat/scripts", exist_ok=True)
 for i in os.listdir("chat/scripts"):
     p = os.path.join("chat/scripts", i)
     if (not os.path.isfile(p)) or (not p.endswith(".ci")):
