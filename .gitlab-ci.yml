@@ -41,25 +41,28 @@ stages:
 test:
   stage: test
   script:
-  - python -V               # Print out python version for debugging
-  - pip install virtualenv
-  - virtualenv venv
-  - source venv/bin/activate
-  - pip install -U discord.py[voice]
-  - pip install -U youtube_dl
-  - pip install -U pynacl
+    - python -V               # Print out python version for debugging
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+    - pip install -U discord.py[voice]
+    - pip install -U youtube_dl
+    - pip install -U pynacl
 
-  - python -m unittest discover
+    - python -m unittest discover
 
 build:
+  needs:
+    - job: test
   image: docker:stable
   stage: build
+  service:
+    - docker:stable-dind
   script:
-  - docker build --tag $CI_IMAGE_TAG .
-  - docker image tag $CI_IMAGE_TAG $CI_REGISTRY_ADDR/$CI_IMAGE_TAG
-  - docker push $CI_REGISTRY_ADDR/$CI_IMAGE_TAG
+    - docker build --tag $CI_REGISTRY_ADDR/$CI_IMAGE_TAG .
+    - docker push $CI_REGISTRY_ADDR/$CI_IMAGE_TAG
 
 #deploy:
 #  stage: deploy
 #  script:
-#  - git push http://ram_deploy:$DEPLOY_PWD@192.168.1.228/fredi_68/protos-discord-bot-production.git HEAD:master
+#    - git push http://ram_deploy:$DEPLOY_PWD@192.168.1.228/fredi_68/protos-discord-bot-production.git HEAD:master
