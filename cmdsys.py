@@ -245,7 +245,7 @@ async def _processCommand(responseHandle, commands, config, client, databaseMana
                 #is the user trying to call a subcommand?
                 try:
                     await _processCommand(responseHandle, i.subcommands, config, client, databaseManager, audioManager, "", args[0], args[1:])
-                except CommandNotFoundException as e:
+                except CommandNotFoundException:
                     #that would be a no
                     pass
                 else:

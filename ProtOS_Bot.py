@@ -53,9 +53,9 @@ import chatutils
 import interaction
 import audio
 import conversation
-from responseManager import *
+from responseManager import * #pylint: disable=unused-wildcard-import
 
-from cmdsys import *
+from cmdsys import * #pylint: disable=unused-wildcard-import
 
 #Set up logging
 try:
@@ -198,7 +198,6 @@ def changeRecordingState(ch):
     EXPERIMENTAL FEATURE! This method starts or stops audio recording on a channel.
     """
 
-    logger = logging.getLogger("Audio")
     if ch.id in SOUNDS_RECORDING: #we are already recording on this channel, stop the recording
         SOUNDS_RECORDING[ch.id].close()
         CONNECTIONLISTENER.removeSink(SOUNDS_RECORDING[ch.id])
@@ -363,7 +362,7 @@ class CmdLeave(Command):
 
         self.name = "leave"
         self.desc = "Makes the bot leave the voice channel."
-        self.permissions.administrator = True
+        self.permissions.administrator = True #pylint: disable=assigning-non-slot
         self.addArgument(Argument("server", CmdTypes.SERVER, True))
 
     async def call(self, server=None, **kwargs):
@@ -1163,7 +1162,7 @@ async def on_reaction_add(reaction, user):
         cfg = ds[0]
         e = cfg.getValue("emote")
         c = cfg.getValue("count")
-        mod = cfg.getValue("needs_mod")
+        _mod = cfg.getValue("needs_mod")
         for reaction in msg.reactions:
             if e and e != str(reaction.emoji):
                 continue #skip reactions that don't match the configuration

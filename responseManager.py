@@ -298,7 +298,7 @@ class RPCResponse(ResponseManager):
             return
 
         #write response
-        lines = map(str.encode, self.rpc_messages) #encode to bytes
+        lines = map(str.encode, self.messages) #encode to bytes
         returnString = b" ".join(lines)
         if not returnString:
             returnString = b"Internal error: No response."
