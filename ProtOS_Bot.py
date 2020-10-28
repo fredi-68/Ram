@@ -35,6 +35,8 @@ try:
 except ImportError:
     HAS_YTDL = False
 
+IS_DOCKER = "--docker" in sys.argv
+
 if sys.path[0]: #set cwd in case that the script was started from a different directory than the bot root
     print("Changing workdir to '%s'..." % sys.path[0])
     try:
@@ -737,12 +739,14 @@ COMMANDS.extend(external_commands) #include external commands
 #CONSTANTS
 
 #Auth information (actually only need the token)
-CLIENT_ID = CONFIG_MANAGER.getElementText("bot.clientID")
-CLIENT_SECRET = CONFIG_MANAGER.getElementText("bot.clientSecret")
-AUTH_TOKEN = CONFIG_MANAGER.getElementText("bot.token") # <- important
-
-USERNAME = CONFIG_MANAGER.getElementText("bot.username")
-PASSWORD = CONFIG_MANAGER.getElementText("bot.password")
+if IS_DOCKER:
+    AUTH_TOKEN = os.environ.get("BOT_AUTH_TOKEN")
+    USERNAME = os.environ.get("BOT_USERNAME")
+    PASSWORD = os.environ.get("BOT_PASSWORD")
+else:
+    AUTH_TOKEN = CONFIG_MANAGER.getElementText("bot.token") # <- important
+    USERNAME = CONFIG_MANAGER.getElementText("bot.username")
+    PASSWORD = CONFIG_MANAGER.getElementText("bot.password")
 
 GAME = discord.Game(name="%s | %s%s" % (version.S_VERSION, CMD_PREFIX, "about")) #We can set this later, just so we have something to display
 
@@ -759,19 +763,27 @@ ICONS = { #Discord chat icons
     "pin": CONFIG_MANAGER.getElementText("bot.icons.pin")
     }
 
-#PROGRAM FLAGS (THESE CAN BE EDITED)
-DEBUG_CONSOLES = True #will force additional terminals to spawn for debug purposes. Should be disabled on release versions. Slightly buggy atm, recommended to be left on
-NICKNAME_LOCKED = True #While this is true, any attempts to change the bots nickname will result in it being automatically changed back.
-USE_VOICECOM = False #Set this to True to use voice receiving hooks.
+if IS_DOCKER:
+    DEBUG_CONSOLES = os.environ.get("BOT_DEBUG_CONSOLES", "False") == "True"
+    NICKNAME_LOCKED = os.environ.get("BOT_NICKNAME_LOCKED", "True") == "True"
+    USE_VOICECOM = os.environ.get("BOT_USE_VOICECOM", "False") == "True"
+else:
+    #PROGRAM FLAGS (THESE CAN BE EDITED)
+    DEBUG_CONSOLES = True #will force additional terminals to spawn for debug purposes. Should be disabled on release versions. Slightly buggy atm, recommended to be left on
+    NICKNAME_LOCKED = True #While this is true, any attempts to change the bots nickname will result in it being automatically changed back.
+    USE_VOICECOM = False #Set this to True to use voice receiving hooks.
 
 #STATE VARIALBES (DON'T EDIT THESE)
 NICKNAME_REVERTED = False #Indicates that the bot changed its nickname back and expects the resulting event to be dispached shortly
 AUTOSAVE_ACTIVE = False #Indicates if an autosave subroutine is currently running. Used to prevent autosave from triggering more than once per session
 
-#addresses for networking
-
-host = CONFIG_MANAGER.getElementText("bot.network.host.IP", "localhost") #address of this machine (usually localhost, unless you want to access the bot from a different computer)
-controlPort = CONFIG_MANAGER.getElementInt("bot.network.host.controlPort", 50010) #port to listen on for remote control interface
+if IS_DOCKER:
+    host = "localhost"
+    controlPort = 50010
+else:
+    #addresses for networking
+    host = CONFIG_MANAGER.getElementText("bot.network.host.IP", "localhost") #address of this machine (usually localhost, unless you want to access the bot from a different computer)
+    controlPort = CONFIG_MANAGER.getElementInt("bot.network.host.controlPort", 50010) #port to listen on for remote control interface
 
 client = discord.Client()
 
