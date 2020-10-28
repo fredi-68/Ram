@@ -334,7 +334,7 @@ class CmdVoice(Command):
                 channel = self.msg.author.voice.channel
         await self.respond("Joining channel now...", True)
         try:
-            voice_client = await channel.connect()
+            await channel.connect()
         except discord.errors.DiscordException:
             await self.respond("Failed to join voice channel.", True)
             return
@@ -626,8 +626,8 @@ class CmdSudo(Command):
     async def call(self, cmd):
 
         self._cmd = cmd.encode()
-        responseHandle = ResponseManager(reader=self, writer=self)
-        await process_command(responseHandle)
+        responseHandle = RPCResponse(reader=self, writer=self)
+        await processCommand(responseHandle, COMMANDS, CONFIG_MANAGER, client, DATABASE_MANAGER, AUDIO_MANAGER)
 
     #Standard bytestream interface methods go here
 
@@ -992,7 +992,10 @@ async def on_message(msg):
             #Initiate self destruct sequence, authorization code: *******************
             elif chatutils.checkForWords(["initiate", "self", "destruct", "sequence"], msg.content):
                 await msg.channel.send(msg.author.mention + ", Access denied: Authentification required. 30 seconds until lockout.")
-                auth_code = await client.wait_for_message(timeout=30, author=msg.author, channel=msg.channel)
+                try:
+                    auth_code = await client.wait_for("message", timeout=30, check=lambda x: x.author == msg.author and x.channel == msg.channel)
+                except asyncio.TimeoutError:
+                    return
                 if not auth_code:
                     return
                 elif auth_code.content == "LucioLover69": #:P
@@ -1048,15 +1051,13 @@ async def on_message(msg):
 
             if "Remember that everything posted in here is absolute dogshit." in msg.content and msg.author.id == "159985870458322944":
                 await msg.channel.send(msg.author.mention + ", you're absolute dogshit.")
-                await asyncio.sleep(60)
-                await client.delete_message(msg)
+                await msg.delete(60)
 
             elif (msg.content.lower().endswith(", you're absolute dogshit.") or msg.content.lower().endswith(", watch your language!!! :rage:")) and msg.author.id == client.user.id:
-                await asyncio.sleep(120)
-                await client.delete_message(msg)
+                await msg.delete(120)
 
             elif "#votepy" in msg.content.lower():
-                await client.delete_message(msg)
+                await msg.delete()
                 await msg.channel.send(msg.author.mention + ", WATCH YOUR LANGUAGE!!! :rage:")
 
             pp = interaction.calculatePrivilegePoints(msg.content)
@@ -1097,7 +1098,7 @@ async def on_message(msg):
 
                 for i in msg.guild.emojis: #Always try to add a "Ram" emoji if available
                     if i.name.lower() == "ram":
-                        await client.add_reaction(msg, i)
+                        await msg.add_reaction(i)
                         break
 
                 if random.random() <= 0.001: #Responds with a probability of 1:1000
@@ -1191,7 +1192,7 @@ async def on_member_update(before, after):
                     NICKNAME_REVERTED = False
                     return
                 try:
-                    await client.change_nickname(after, before.nick) #revert nickname changes
+                    await after.change_nickname(before.nick) #revert nickname changes
                     NICKNAME_REVERTED = True
                     logger.info("Successfully intercepted nickname change!")
                 except:
@@ -1220,11 +1221,11 @@ async def on_call(call, *args, **kwargs):
         return
 
     try:
-        await client.join_voice_channel(voiceState.voice_channel)
+        await voiceState.voice_channel.join_voice_channel()
     except discord.InvalidArgument:
         logger.exception("Failed to join call: Call channel is not a voice channel.")
     except asyncio.TimeoutError:
-        await client.send_message(call.channel, "Unable to connect to call right now. Please try again.")
+        await call.channel.send_message("Unable to connect to call right now. Please try again.")
     except discord.ClientException:
         pass
     except discord.opus.OpusNotLoaded:
