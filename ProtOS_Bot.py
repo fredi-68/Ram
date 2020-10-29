@@ -776,13 +776,9 @@ else:
 NICKNAME_REVERTED = False #Indicates that the bot changed its nickname back and expects the resulting event to be dispached shortly
 AUTOSAVE_ACTIVE = False #Indicates if an autosave subroutine is currently running. Used to prevent autosave from triggering more than once per session
 
-if IS_DOCKER:
-    host = "localhost"
-    controlPort = 50010
-else:
-    #addresses for networking
-    host = CONFIG_MANAGER.getElementText("bot.network.host.IP", "localhost") #address of this machine (usually localhost, unless you want to access the bot from a different computer)
-    controlPort = CONFIG_MANAGER.getElementInt("bot.network.host.controlPort", 50010) #port to listen on for remote control interface
+#addresses for networking
+host = CONFIG_MANAGER.getElementText("bot.network.host.IP", "localhost") #address of this machine (usually localhost, unless you want to access the bot from a different computer)
+controlPort = CONFIG_MANAGER.getElementInt("bot.network.host.controlPort", 50010) #port to listen on for remote control interface
 
 client = discord.Client()
 
@@ -1230,12 +1226,13 @@ async def on_call(call, *args, **kwargs):
     except discord.opus.OpusNotLoaded:
         logger.error("Call could not be initialized due to opus library being uninitialized.")
 
-#Set up RAT response server
-
-logging.info("Starting command server...")
-coro = asyncio.start_server(console_cb, host, controlPort, loop=client.loop) #we also need to listen for incoming commands on the console.
-client.loop.run_until_complete(coro)
-logging.info("RPC port open, listening on %s:%i" % (host, controlPort))
+if not IS_DOCKER:
+    #Set up RAT response server
+    
+    logging.info("Starting command server...")
+    coro = asyncio.start_server(console_cb, host, controlPort, loop=client.loop) #we also need to listen for incoming commands on the console.
+    client.loop.run_until_complete(coro)
+    logging.info("RPC port open, listening on %s:%i" % (host, controlPort))
 
 #MAIN LOOP
 
