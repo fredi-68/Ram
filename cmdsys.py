@@ -370,7 +370,7 @@ async def _processCommand(responseHandle, commands, config, client, databaseMana
 
                     elif t == CmdTypes.SERVER:
                         try:
-                            arguments[i.arguments[j].name] = client.get_server(int(arg))
+                            arguments[i.arguments[j].name] = client.get_guild(int(arg))
                         except:
                             raise CommandCallFailedException(errorStr + " Not a valid server ID!")
 
