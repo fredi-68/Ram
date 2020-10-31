@@ -1,6 +1,9 @@
 # Ram
 ProtOS Discord Bot (Codename: Ram)
 
+[![pipeline status](http://192.168.1.228/fredi_68/protos-discord-bot/badges/master/pipeline.svg)](http://192.168.1.228/fredi_68/protos-discord-bot/commits/master)
+[![coverage report](http://192.168.1.228/fredi_68/protos-discord-bot/badges/master/coverage.svg)](http://192.168.1.228/fredi_68/protos-discord-bot/commits/master)
+
 *Welp that deleted my old readme file, thanks a lot Git. Sheesh.*
 Seriously there has to be a better way to merge a local repo onto the master without fucking everything up, even if their histories
 don't match up. And there probably is. Remember to propose change to the Git devs to put a gigantic disclaimer text at the start of the
