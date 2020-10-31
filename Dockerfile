@@ -1,11 +1,11 @@
 FROM python:3.6
 LABEL maintainer="fredi_68"
 WORKDIR /app
-RUN mkdir chat
-RUN mkdir config
-RUN mkdir sounds
-RUN mkdir tracks
-RUN mkdir logs
+#RUN mkdir chat
+#RUN mkdir config
+#RUN mkdir sounds
+#RUN mkdir tracks
+#RUN mkdir logs
 VOLUME /app/chat
 VOLUME /app/config
 VOLUME /app/sounds
