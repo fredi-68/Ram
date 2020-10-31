@@ -45,4 +45,4 @@ build-job:
     - mkdir -p /kaniko/.docker
     #- echo "{\"auths\":{\"$CI_REGISTRY_ADDR\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - echo "{\"insecure_registries\":[\"$CI_REGISTRY_ADDR\"]}" > /kaniko/.docker/daemon.json #allow insecure registry for testing TODO remove later
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_ADDR/$CI_IMAGE_TAG:latest --cache-dir .cache/kaniko
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_ADDR/$CI_IMAGE_TAG:latest --cache=true --cache-dir=.cache/kaniko
