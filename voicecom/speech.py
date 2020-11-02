@@ -16,10 +16,6 @@ try:
 except ImportError:
     HAS_SPEECH = False
 
-#=====================================
-#SPEECH RECOGNITION
-#=====================================
-
 class SpeechABC():
 
     """
@@ -33,6 +29,10 @@ class SpeechABC():
     def __init__(self):
 
         self.loop = asyncio.get_event_loop()
+
+#=====================================
+#SPEECH RECOGNITION
+#=====================================
 
 class SpeechRecognitionEngine(SpeechABC):
 
