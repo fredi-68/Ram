@@ -36,6 +36,7 @@ class ChannelHandle(asyncio.DatagramProtocol):
 
     def map_user(self, ssrc, user):
 
+        assert user is not None
         self.user_map[ssrc] = user
 
     def _get_ssrc_for_user(self, user):

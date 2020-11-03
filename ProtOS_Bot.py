@@ -812,7 +812,7 @@ if USE_VOICECOM:
     logger = logging.getLogger("Voicecom")
     logger.info("Installing UDP voice connection hook...")
     #recognizer = voicecom.speech.GoogleRE()
-    recognizer = voicecom.speech.SphinxRE()
+    recognizer = voicecom.speech.RhasspyRE((CONFIG_MANAGER.getElementText("bot.network.rhasspy.host"), CONFIG_MANAGER.getElementInt("bot.network.rhasspy.port")))
     CONNECTIONLISTENER = voicecom.ConnectionListener(client, recognizer) #init our UDP voice packet listener and register interceptor methods. This object should now do everything on its own. We just need to set it some limits every so often
     TTS = voicecom.speech.GoogleTTS()
 
@@ -1122,6 +1122,12 @@ async def on_voice_state_update(what, before, after):
                     sound = audio.FFMPEGSound(filepath)
                     AUDIO_MANAGER.playSound(sound, after_channel, sync=False)
                     return
+
+    #PADORU PADORU
+    if what.id != client.user.id and after_channel is not None:
+        vc = await after_channel.connect()
+        sound = audio.FFMPEGSound(SOUND_DIR + "system/PADORU.ogg")
+        AUDIO_MANAGER.playSound(sound, after_channel, sync=False)
 
 @client.event
 async def on_guild_update(before, after):

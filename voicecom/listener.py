@@ -130,6 +130,8 @@ class ConnectionListener():
 
     async def handle_stop_speaking(self, client, user):
 
+        print("test")
+
         if not self.recognizer:
             return
 
@@ -232,7 +234,10 @@ class ConnectionListener():
 
         ch = channel.voiceclient.channel
         #self.logger.debug("ConnectionListener.write() was called with data=%s, ssrc=%s, channel=%s" % (repr(data), str(ssrc), str(channel)))
-        user = channel._get_user_for_ssrc(ssrc)
+        try:
+            user = channel._get_user_for_ssrc(ssrc)
+        except KeyError:
+            self.logger.error("Unknown SSRC encountered: %s" % ssrc)
         for sink, t_user, type, t_ch in self.sinks:
             if not ch == t_ch:
                 continue

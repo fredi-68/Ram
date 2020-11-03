@@ -8,6 +8,7 @@ import shlex
 import uuid
 import logging
 import subprocess
+import wave
 
 HAS_SPEECH = True
 try:
@@ -15,6 +16,12 @@ try:
     import gtts
 except ImportError:
     HAS_SPEECH = False
+
+HAS_MQTT = True
+try:
+    import gmqtt as mqtt
+except ImportError:
+    HAS_MQTT = False
 
 class SpeechABC():
 
@@ -37,6 +44,7 @@ class SpeechABC():
 class SpeechRecognitionEngine(SpeechABC):
 
     async def recognize(self, data):
+
         return ""
 
 class SphinxRE(SpeechRecognitionEngine):
@@ -94,6 +102,61 @@ class GoogleCloudRE(SpeechRecognitionEngine):
         mono = audioop.tomono(data, self.SAMPLE_WIDTH, 1, 0)
         audio = speech_recognition.AudioData(mono, self.SAMPLE_RATE, self.SAMPLE_WIDTH)
         return await self.loop.run_in_executor(None, self._recognizer.recognize_google_cloud, audio, self.CREDENTIALS)
+
+class RhasspyRE(SpeechRecognitionEngine):
+
+    CLIENT_ID = "ram-voice-commands"
+    TOKEN = ""
+
+    def __init__(self, address):
+
+        if not HAS_MQTT:
+            raise RuntimeError("Not MQTT client installed! Please install paho.mqtt")
+        super().__init__()
+
+        self._result_fut = None
+
+        self.address = address
+        self._client = mqtt.Client(self.CLIENT_ID)
+        self.loop.create_task(self._connect())
+
+    def _msg_callback(self, client, topic, payload, qos, properties):
+
+        if topic == "hermes/asr/textCaptured":
+
+            self._result_fut.set_result(payload)
+
+        elif topic == "hermes/error/asr":
+
+            self._result_fut.set_exception(RuntimeError("Audio transcription failed: %s" % payload))
+
+    async def _connect(self):
+
+        self._client.set_auth_credentials(self.TOKEN, None)
+        self._client.on_message(self._msg_callback)
+        await self._client.connect(*self.address)
+        self._client.subscribe("hermes/asr/textCaptured")
+        self._client.subscribe("hermes/error/asr")
+
+    async def recognize(self, data):
+
+        payload = io.BytesIO()
+        wave_obj = wave.open(payload, "wb")
+
+        wave_obj.setnchannels(2)
+        wave_obj.setsampwidth(self.SAMPLE_WIDTH)
+        wave_obj.setframerate(self.SAMPLE_RATE)
+        wave_obj.writeframes(data)
+        wave_obj.close()
+
+        session = uuid.uuid4().hex
+        self._result_fut = asyncio.Future()
+
+        self._client.publish("hermes/asr/startListening", session)
+        self._client.publish("hermes/audioServer/default/audioFrame", payload.getvalue())
+        self._client.publish("hermes/asr/stopListening", session)
+
+        return await self._result_fut
 
 #=====================================
 #SPEECH SYNTHESIS
