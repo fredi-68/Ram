@@ -12,6 +12,18 @@ from cmdsys import *
 
 class VTube(Command):
 
+    """
+    Holodule notification integration.
+
+    This command provides integration with the Holodule Hololife ICS Schedule project.
+    More information at https://github.com/sarisia/holodule-ics
+
+    This command takes many configuration options.
+    ICS_URL specifies the target ICS file to track.
+    Various timing adjustments are possible through use of the SCHEDULE_* variables.
+    """
+
+    #YTDL Options
     YOUTUBE_DL_OPTIONS = {
         "format": "webm[abr>0]/bestaudio/best",
         "prefer_ffmpeg": True,
@@ -22,19 +34,22 @@ class VTube(Command):
         "download": False
         }
 
-    SCHEDULE_SLEEP_INTERVAL = 60 #seconds
-    SCHEDULE_UPDATE_FREQUENCY = 1 #per hour
-    SCHEDULE_CHECK_FREQUENCY = 60 #per hour
-    SCHEDULE_REEVALUATION_INTERVAL = 300 #seconds
+    #Scheduler timings
+    SCHEDULE_SLEEP_INTERVAL = 60 #time the scheduler sleeps between task checks, in seconds
+    SCHEDULE_UPDATE_FREQUENCY = 1 #times the schedule is updated, per hour
+    SCHEDULE_CHECK_FREQUENCY = 60 #times the schedule is checked for active events, per hour
+    SCHEDULE_REEVALUATION_INTERVAL = 300 #seconds to wait between notification reevaluation attempts
+    SCHEDULE_FORWARD_SHIFT = 0 #lookahead delay when checking for active events, in seconds
 
     ICS_URI = "https://sarisia.cc/holodule-ics/holodule-english.ics"
     #ICS_URI = "https://sarisia.cc/holodule-ics/holodule-all.ics"
 
     def setup(self):
 
-        self.name = "vtubersareshit"
-        self.desc = "Fuck you."
+        self.name = "holodule"
+        self.desc = "Manage Hololive livestream notifications."
         self.permissions.administrator = True
+        self.allowDelimiters = False
 
         self.addArgument(Argument("action", CmdTypes.STR))
         self.addArgument(Argument("channel", CmdTypes.CHANNEL, True))
