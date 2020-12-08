@@ -17,7 +17,6 @@ import chatutils
 import cmdutils
 import interaction
 import traceback
-from tasks import Task
 
 #Argument types
 class CmdTypes(enum.Enum):
