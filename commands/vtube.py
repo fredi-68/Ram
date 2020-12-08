@@ -123,7 +123,7 @@ class VTube(Command):
                         break
                 if msg is None:
                     msg = await ch.send((mention_role.mention if mention_role is not None else ""), embed=await self._create_embed(event, info))
-                elif info.get("is_live"): #only attempt to edit the embed if content has changed.
+                else:
                     await msg.edit(embed=await self._create_embed(event, info))
             except:
                 self.logger.exception("Exception happened in notification dispatcher: ")
@@ -174,12 +174,12 @@ class VTube(Command):
         Turns an ICS event into a Discord embed.
         """
 
-        e = discord.Embed()
+        e = discord.Embed(url=info.get("url"))
         e.title = "%s %s!" % (info.get("streamer"), info.get("live_status"))
         e.add_field(name="Stream title", value=info.get("title"), inline=False)
-        e.add_field(name="Begin:", value=str(event.begin), inline=False)
+        e.add_field(name="Begin:", value=event.begin.format("HH:mm:ss ZZZ") + " (" + event.begin.humanize() + ")", inline=False)
         e.add_field(name="Duration: ", value=str(event.duration), inline=False)
-        e.add_field(name="Link", value=info.get("url"), inline=False)
+        #e.add_field(name="Link", value=info.get("url"), inline=False)
         e.set_image(url=info.get("thumbnail") or e.Empty)
         return e
 
