@@ -60,7 +60,7 @@ class ConversationSimulator():
     logger = logging.getLogger("ConversationSimulator")
     name = "GenericConversationSimulator"
 
-    def __init__(self, client, config):
+    def __init__(self, client: "ProtosBot", config: "ConfigManager"):
 
         """
         Create a new ConversationSimulator instance.
@@ -73,7 +73,7 @@ class ConversationSimulator():
         self.client = client
         self.config = config
 
-    async def observe(self, msg):
+    async def observe(self, msg: "discord.Message"):
 
         """
         Observe a message typed by a user in chat.
@@ -87,7 +87,7 @@ class ConversationSimulator():
 
         pass
 
-    async def respond(self, msg):
+    async def respond(self, msg: "discord.Message") -> str:
 
         """
         Respond to a message.
@@ -98,7 +98,7 @@ class ConversationSimulator():
 
         return ""
 
-    async def setOpt(self, key, value):
+    async def setOpt(self, key: str, value: object):
 
         """
         Set an option. Support for options is implementation dependend.
@@ -106,7 +106,7 @@ class ConversationSimulator():
 
         raise NotImplementedError("Unsupported option %s" % key)
 
-    async def getOpt(self, key):
+    async def getOpt(self, key: str) -> object:
 
         """
         Get an option. Support for options is implementation dependend.
@@ -148,7 +148,7 @@ class MegaHAL(ConversationSimulator):
         self.ip = config.getElementText("bot.network.AI.IP", "localhost")
         self.port = config.getElementInt("bot.network.AI.port", 50011)
 
-    def _prepareMessage(self, msg):
+    def _prepareMessage(self, msg: "discord.Message") -> bytes:
 
         """
         Prepares a chat message for export to the AI process via local IPv4 loopback
@@ -345,62 +345,62 @@ class BrianCS(ConversationSimulator):
             "dropout_curve": [self.getDropoutCurve, self.setDropoutCurve, ft.partial(enum_name, DropoutCurve)]
             }
 
-    def addToBlacklist(self, name):
+    def addToBlacklist(self, name: str):
         if not name in self.model.blacklist:
             self.model.blacklist.append(name)
 
-    def removeFromBlacklist(self, name):
+    def removeFromBlacklist(self, name: str):
         if name in self.model.blacklist:
             self.model.blacklist.remove(name)
 
-    def getModelOrder(self):
+    def getModelOrder(self) -> int:
         return self.model.modelOrder
 
-    def setModelOrder(self, ord):
+    def setModelOrder(self, ord: int):
         self.model.genForward.order = ord
         self.model.genBackward.order = ord
         self.model.modelOrder = ord
 
-    def getContextBias(self):
+    def getContextBias(self) -> float:
         return self.model.context_bias
 
-    def setContextBias(self, bias):
+    def setContextBias(self, bias: float):
         self.model.context_bias = bias
 
-    def getDropoutChance(self):
+    def getDropoutChance(self) -> float:
         return self.model.dropout_chance
 
-    def setDropoutChance(self, chance):
+    def setDropoutChance(self, chance: float):
         self.model.dropout_chance = chance
 
-    def getMaxPredictions(self):
+    def getMaxPredictions(self) -> int:
         return self.model.max_predictions
 
-    def setMaxPredictions(self, m):
+    def setMaxPredictions(self, m: int):
         self.model.max_predictions = m
 
-    def getPredictionTime(self):
+    def getPredictionTime(self) -> float:
         return self.model.prediction_time
 
-    def setPredictionTime(self, t):
+    def setPredictionTime(self, t: float):
         self.model.prediction_time = t
 
-    def getDropoutFactor(self):
+    def getDropoutFactor(self) -> float:
         return self.model.dropout_factor
 
-    def setDropoutFactor(self, t):
+    def setDropoutFactor(self, t: float):
         self.model.dropout_factor = t
 
-    def getDropout(self):
+    def getDropout(self) -> Dropout:
         return self.model.dropout
 
-    def setDropout(self, t):
+    def setDropout(self, t: Dropout):
         self.model.dropout = t
 
-    def getDropoutCurve(self):
+    def getDropoutCurve(self) -> DropoutCurve:
         return self.model.dropout_curve
 
-    def setDropoutCurve(self, t):
+    def setDropoutCurve(self, t: DropoutCurve):
         self.model.dropout_curve = t
 
     def load(self, path=None):

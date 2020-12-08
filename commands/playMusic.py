@@ -71,8 +71,10 @@ class MyCommand(Command):
         for i in range(len(results)):
             url, title = items[i]
             e.add_field(name="Result %i: %s" % (i, title), value=url, inline=False)
-        e.set_footer(text="Select a track from the list above by clicking the corresponding reaction below this post.")
+        #e.set_footer(text="Select a track from the list above by clicking the corresponding reaction below this post.")
         msg = await self.msg.channel.send(None, embed=e) #we have to use the long version here, because we need access to the message
+
+        return #TODO: Remove me
 
         #Add reactions to the message to identify the track
         reactions = list(SELECT_EMOTES.keys())
@@ -160,6 +162,8 @@ class MyCommand(Command):
                 query = await self.search(q, searchEngine, 0xFF5500)
                 if not query:
                     return
+
+            return #TODO: Remove me
 
             #New playlist handling code
             #We need to do youtube_dl handling manually

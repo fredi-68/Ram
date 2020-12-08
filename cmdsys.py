@@ -9,6 +9,7 @@ import enum
 import importlib
 import os
 import asyncio
+from typing import List, Callable
 
 import discord
 
@@ -16,6 +17,7 @@ import chatutils
 import cmdutils
 import interaction
 import traceback
+from tasks import Task
 
 #Argument types
 class CmdTypes(enum.Enum):
@@ -75,7 +77,7 @@ class PermissionDeniedException(CommandException):
 
     pass
 
-def cleanUpRegister(func, *args, **kwargs):
+def cleanUpRegister(func: Callable, *args, **kwargs):
 
     """
     Register a function to be called at application exit.
@@ -114,7 +116,7 @@ async def cleanUp():
         except:
             logger.exception("Clean up function "+str(i[0])+" could not be executed correctly!")
 
-async def dialogConfirm(msg, client):
+async def dialogConfirm(msg, client: "ProtosBot") -> bool:
 
     """
     Ask the user to confirm an action.
@@ -123,12 +125,12 @@ async def dialogConfirm(msg, client):
     await msg.channel.send(msg.author.mention+", "+interaction.confirm.getRandom())
     response = await client.wait_for_message(timeout=30, author=msg.author, channel=msg.channel)
     if not response: #message timed out, user took too long or didn't respond at all
-        return
+        return False
     if response.content.lower() in ["yes","yup","yee","ya","yas","yaaas","yeah","yea"]: #extend these if needed
         return True
-    return
+    return False
 
-async def dialogReact(channel, user, client, message=None, emoji=None, timeout=30):
+async def dialogReact(channel: discord.TextChannel, user: discord.User, client: "ProtosBot", message: discord.Message=None, emoji: discord.Emoji=None, timeout=30):
 
     """
     Wait for the user to select a chat message using an emoji.
@@ -153,7 +155,7 @@ async def dialogReact(channel, user, client, message=None, emoji=None, timeout=3
     reaction, user = await client.wait_for("reaction_add", check=check, timeout=timeout)
     return reaction.message
 
-def loadCommands(path):
+def load_commands(path):
 
     """
     Load commands from a directory.
@@ -199,7 +201,7 @@ def loadCommands(path):
     
     return commands
 
-async def _processCommand(responseHandle, commands, config, client, databaseManager, audioManager, prefix, cmd, args):
+async def _processCommand(responseHandle: "ResponseManager", client: "ProtosBot", cmd: str, args: List[str]):
 
     """
     Internal command parser.
@@ -207,7 +209,7 @@ async def _processCommand(responseHandle, commands, config, client, databaseMana
     Raises various exceptions which are converted to messages by the processCommand wrapper function.
     """
 
-    for i in commands:
+    for i in client.commands:
         patterns = [i.name]
         patterns.extend(i.aliases) #we are looking for the command name as well as all aliases
         if cmd in patterns: #first word matches search pattern - this is the command we are looking for
@@ -217,7 +219,7 @@ async def _processCommand(responseHandle, commands, config, client, databaseMana
 
                 if not i.allowChat:
                     raise PermissionDeniedException("This command is not available in chat!")
-                if i.ownerOnly and responseHandle.getID() != config.getElementInt("bot.owner"): #owner only command
+                if i.ownerOnly and responseHandle.getID() != client.config.getElementInt("bot.owner"): #owner only command
                     if responseHandle.getID() == 181072803439706112:
                         raise PermissionDeniedException("Sorry Aidan, but I cannot let you do that.")
                     else:
@@ -228,7 +230,7 @@ async def _processCommand(responseHandle, commands, config, client, databaseMana
                 #Is this user blocked?.
                 if responseHandle.is_chat():
                     if responseHandle.getMessage().guild: #disabled for private messages
-                        db = databaseManager.getServer(responseHandle.getMessage().guild.id)
+                        db = client.db.getServer(responseHandle.getMessage().guild.id)
 
                         ds = db.createDatasetIfNotExists("blockedUsers", {"userID": responseHandle.getMessage().author.id})
                         if ds.exists(): #FOUND YOU
@@ -244,7 +246,7 @@ async def _processCommand(responseHandle, commands, config, client, databaseMana
             if i.subcommands:
                 #is the user trying to call a subcommand?
                 try:
-                    await _processCommand(responseHandle, i.subcommands, config, client, databaseManager, audioManager, "", args[0], args[1:])
+                    await _processCommand(responseHandle, client, args[0], args[1:])
                 except CommandNotFoundException:
                     #that would be a no
                     pass
@@ -264,7 +266,7 @@ async def _processCommand(responseHandle, commands, config, client, databaseMana
             if argamt < len(oblargs): #not enough arguments
 
                 #set environment attributes for external commands
-                i._setVariables(client, config, responseHandle, databaseManager, audioManager)
+                i._setVariables(client, responseHandle)
                 raise CommandCallFailedException("Not enough arguments\n" + i.getUsage())
 
             else:
@@ -431,7 +433,7 @@ async def _processCommand(responseHandle, commands, config, client, databaseMana
                                 pass
                         if client.user.bot:
                             try:
-                                arguments[i.arguments[j].name] = client.get_user_info(arg) #...but this doesn't work anymore
+                                arguments[i.arguments[j].name] = client.get_user(arg) #...but this doesn't work anymore
                             except:
                                 arguments[i.arguments[j].name] = arg
                         else:
@@ -483,7 +485,7 @@ async def _processCommand(responseHandle, commands, config, client, databaseMana
                         arguments[i.arguments[j].name] = arg
 
                 #set environment variables for external commands
-                i._setVariables(client, config, responseHandle, databaseManager, audioManager)
+                i._setVariables(client, responseHandle)
                 #call command
                 await i.call(**arguments)
 
@@ -491,19 +493,19 @@ async def _processCommand(responseHandle, commands, config, client, databaseMana
 
     raise CommandNotFoundException("That command doesn't exist.") #if we don't find a command let the user know about it
 
-async def processCommand(responseHandle, commands, config, client, databaseManager, audioManager):
+async def processCommand(responseHandle: "ResponseManager", client: "ProtosBot", commands: List["Command"]):
 
     """
     Interface for unified command handling
     """
 
-    cmd_prefix = config.getElementText("bot.prefix", "+")
+    cmd_prefix = client.config.getElementText("bot.prefix", "+")
 
     icons = { #Discord chat icons
-        "ok": config.getElementText("bot.icons.ok"),
-        "forbidden": config.getElementText("bot.icons.forbidden"),
-        "error": config.getElementText("bot.icons.error"),
-        "pin": config.getElementText("bot.icons.pin")
+        "ok": client.config.getElementText("bot.icons.ok"),
+        "forbidden": client.config.getElementText("bot.icons.forbidden"),
+        "error": client.config.getElementText("bot.icons.error"),
+        "pin": client.config.getElementText("bot.icons.pin")
         }
 
     content = await responseHandle.getCommand()
@@ -521,7 +523,7 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
             for i in commands:
                 if i.name == words[1] and not i.hidden: #make sure hidden commands don't come up in the search
                     #set environment variables for external commands
-                    i._setVariables(client, config, responseHandle, databaseManager, audioManager)
+                    i._setVariables(client, responseHandle)
                     await responseHandle.reply(await i.getHelp(), False) #generate help information and send it to the user
                     responseHandle.close()
                     return
@@ -535,7 +537,7 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
                     continue #make sure hidden commands don't come up in the search
 
                 #set environment variables for external commands
-                i._setVariables(client, config, responseHandle, databaseManager, audioManager)
+                i._setVariables(client, responseHandle)
 
                 #calculate length of command string
                 spacing = max(1, maxlen - (len(cmd_prefix) + len(i.name))) #how many spaces do we need to fill? Also guarantee at least one space
@@ -548,12 +550,12 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
         return
 
     try:
-        await _processCommand(responseHandle, commands, config, client, databaseManager, audioManager, cmd_prefix, words[0], words[1:])
+        await _processCommand(responseHandle, client, words[0], words[1:])
     except CommandException as e:
         await responseHandle.reply(icons["error"] + " " + str(e), e.mention_user)
     except BaseException as e:
         logging.exception("Command execution failed: ")
-        if config.getElementInt("bot.debug.showCommandErrors", 0, False):
+        if client.config.getElementInt("bot.debug.showCommandErrors", 0, False):
             tb = chatutils.mdEscape(traceback.format_exc())
             await responseHandle.reply("Command execution failed:\n %s\n\nYou are receiving this message because command debugging is enabled.\nIt can be disabled in the config files." % tb, True)
 
@@ -561,7 +563,7 @@ async def processCommand(responseHandle, commands, config, client, databaseManag
 
 class Argument():
 
-    def __init__(self, name, type=CMD_TYPE_INT, optional=False, default=None):
+    def __init__(self, name: str, type=CMD_TYPE_INT, optional=False, default=None):
 
         """
         Creates a new argument descriptor with a name and an associated type.
@@ -585,6 +587,8 @@ class Command():
         """
 
         self.logger = logging.getLogger("Uninitialized Command")
+        self._tasks = []
+        self.loop = asyncio.get_event_loop()
 
         #System internal information
         self.name = ""
@@ -637,7 +641,7 @@ class Command():
 
         return
 
-    async def respond(self, msg, notify=False, flush_chat=True):
+    async def respond(self, msg: str, notify=False, flush_chat=True):
 
         """
         Helper method for printing command output.
@@ -645,7 +649,7 @@ class Command():
 
         await self.responseHandle.reply(msg, notify, flush_chat) #does all the work for us
 
-    async def embed(self, embed):
+    async def embed(self, embed: discord.Embed):
 
         """
         Helper method for printing command output.
@@ -653,7 +657,7 @@ class Command():
 
         await self.responseHandle.createEmbed(embed)
 
-    async def log(self, msg, notify=False):
+    async def log(self, msg: str, notify=False):
 
         """
         Helper method for logging to audit logs.
@@ -674,7 +678,7 @@ class Command():
 
         await self.responseHandle.flush()
 
-    def playSound(self, sound, channel, sync=True):
+    def playSound(self, sound: "audio.Sound", channel: discord.VoiceChannel, sync=True):
 
         """
         Play a sound on the specified channel.
@@ -685,7 +689,7 @@ class Command():
 
         self.audioManager.playSound(sound, channel, sync)
 
-    def getAuthorPermissions(self):
+    def getAuthorPermissions(self) -> discord.Permissions:
 
         """
         Return the discord.Permissions object associated with the author of
@@ -696,7 +700,7 @@ class Command():
 
         return self.responseHandle.getPermission()
 
-    def isOwner(self):
+    def isOwner(self) -> bool:
 
         """
         Check if the author of the message that invoked this command is the bot owner.
@@ -714,7 +718,7 @@ class Command():
         owner = self.config.getElementText("bot.owner", "")
         return owner == self.responseHandle.getID()
 
-    def addArgument(self, argument):
+    def addArgument(self, argument: Argument):
 
         """
         Add an argument
@@ -723,7 +727,7 @@ class Command():
         assert isinstance(argument, Argument)
         self.arguments.append(argument)
 
-    def addSubcommand(self, command):
+    def addSubcommand(self, command: "Command"):
 
         """
         Add a subcommand to this command.
@@ -732,7 +736,7 @@ class Command():
         assert isinstance(command, Command)
         self.subcommands.append(command)
 
-    def getUsage(self):
+    def getUsage(self) -> str:
 
         """
         Get a usage string for the command e.g.
@@ -753,7 +757,7 @@ class Command():
 
         return s
 
-    async def getHelp(self):
+    async def getHelp(self) -> str:
 
         """
         Get documentation for the command
@@ -800,7 +804,7 @@ class Command():
 
         return s
 
-    def _setVariables(self, client, cfg, responseHandle, db, audioManager):
+    def _setVariables(self, client: "ProtosBot", responseHandle: "ResponseManager"):
 
         """
         Internal method.
@@ -808,8 +812,8 @@ class Command():
         """
 
         self.client = client
-        self.config = cfg
+        self.config = client.config
         self.responseHandle = responseHandle
         self.msg = responseHandle.getMessage()
-        self.db = db
-        self.audioManager = audioManager
+        self.db = client.db
+        self.audioManager = client.audio

@@ -3,3 +3,4 @@ PyNaCl
 youtube-dl
 soundcloud
 pygame
+ics

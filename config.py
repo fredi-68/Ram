@@ -10,6 +10,8 @@ import weakref
 import logging
 import shutil
 import os
+from typing import List, Union
+from pathlib import Path
 
 import discord
 
@@ -24,7 +26,7 @@ class VersionError(Exception):
 
     pass
 
-class configManager():
+class ConfigManager():
 
     """
     This class represents an xml configuration file.
@@ -51,7 +53,7 @@ class configManager():
         self.version = "N/A"
         self.load()
 
-    def load(self, path=None):
+    def load(self, path=None) -> bool:
 
         """
         Load a config from <path> or the default config.
@@ -86,7 +88,7 @@ class configManager():
 
         return True
 
-    def save(self, path=None):
+    def save(self, path=None) -> bool:
         
         """
         Saves the entire config tree to the disk.
@@ -109,7 +111,7 @@ class configManager():
 
         return True
 
-    def getElement(self, path=None, create=False):
+    def getElement(self, path=None, create=False) -> ET.Element:
 
         """
         Get element at <path>. If path is None returns root element.
@@ -133,7 +135,7 @@ class configManager():
 
         return cElement
 
-    def getElementText(self, path=None, default="", create=False):
+    def getElementText(self, path=None, default="", create=False) -> str:
 
         """
         Shorthand for getElement(path).text . Supports default values.
@@ -145,7 +147,7 @@ class configManager():
             return default
         return element.text
 
-    def getElementInt(self, path=None, default=0, create=False):
+    def getElementInt(self, path=None, default=0, create=False) -> int:
 
         """
         Shorthand for int(getElement(path).text) . Supports default values and automatic type checking.
@@ -160,7 +162,7 @@ class configManager():
         except:
             return default
 
-    def addElement(self, path, element):
+    def addElement(self, path: str, element: ET.Element) -> ET.Element:
 
         """
         Add the element to the config at <path>. Returns the modified parent element.
@@ -188,7 +190,7 @@ class configManager():
         cElement.append(element)
         return cElement
 
-    def setElement(self, path, element):
+    def setElement(self, path: str, element: ET.Element) -> ET.Element:
 
         """
         Set the element in the config at <path>. Returns the modified parent element.
@@ -218,7 +220,7 @@ class configManager():
         cElement.append(element) #re-add our new element
         return cElement
 
-    def setElementText(self, path, text):
+    def setElementText(self, path: str, text: str) -> ET.Element:
 
         """
         Set the element text in the config at <path>. Returns the modified parent element.
@@ -235,7 +237,7 @@ class configManager():
         e.text = text
         return self.setElement(path, e)
 
-    def removeElement(self, element):
+    def removeElement(self, element: ET.Element):
 
         """
         Remove the element from the config. Element must be an element in the config data tree for this to work.
@@ -247,7 +249,7 @@ class configManager():
 
         self.root.remove(element) #dunno if this works, we'll see
 
-    def removeElementsByTag(self, path, tag):
+    def removeElementsByTag(self, path: str, tag: str) -> ET.Element:
 
         """
         Removes all subelements from the element at <path> that match <tag>. This will fail silently if there are no elements present. Returns a list of the elements removed.
@@ -275,7 +277,7 @@ class DatasetHandle():
 
     logger = logging.getLogger("Database")
 
-    def __init__(self, database, table, index, columns):
+    def __init__(self, database: "DatabaseHandle", table: str, index: int, columns: List[list]):
 
         """
         This class represents a set of data. This data is generally arbitrary, but limited by the table and the DatabaseHandle being used.
@@ -307,7 +309,7 @@ class DatasetHandle():
         for i in self._columns:
             self.setValue(i[1], None)
 
-    def getColumnNames(self) -> list:
+    def getColumnNames(self) -> List[str]:
 
         """
         Returns a list of all column names in this dataset
@@ -351,7 +353,7 @@ class DatasetHandle():
 
         raise KeyError("No such column.")
 
-    def _convertValue(self, type, value) -> object:
+    def _convertValue(self, type: str, value: object) -> object:
 
         """
         Internal method.
@@ -380,7 +382,7 @@ class DatasetHandle():
         else:
             raise ValueError("Unexpected type for value, must be valid sqlite3 datatype.")
 
-    def setValue(self, column, value):
+    def setValue(self, column: Union[str, int], value: object):
 
         """
         Set the value of the specified column to the specified value.
@@ -403,7 +405,7 @@ class DatasetHandle():
 
         self._entries[column] = self._convertValue(self._columns[column][2], value)
 
-    def setAllValues(self, values):
+    def setAllValues(self, values: List[object]):
 
         """
         Set all values of the dataset at once.
@@ -413,7 +415,7 @@ class DatasetHandle():
         for i in range(0, len(values)):
             self._entries[i] = values[i]
 
-    def getValue(self, column) -> object:
+    def getValue(self, column: Union[str, int]) -> object:
 
         """
         Get the value of the specified column. If column is a string, it will be interpreted as the name of the column.
@@ -470,7 +472,7 @@ class DatasetHandle():
 
         return self._table
 
-    def getDatabase(self) -> object:
+    def getDatabase(self) -> "DatabaseHandle":
 
         """
         Returns the database instance this dataset is tied to
@@ -542,7 +544,7 @@ class Transaction():
         -Symmetric difference / xor (^)
     """
 
-    def __init__(self, database, datasets=[]):
+    def __init__(self, database: "DatabaseHandle", datasets=List[DatasetHandle]):
 
         """
         Create a new Transaction instance.
@@ -557,7 +559,7 @@ class Transaction():
         self._database = database
         self._datasets = list(datasets)
 
-    def getDatasets(self):
+    def getDatasets(self) -> List[DatasetHandle]:
 
         """
         Return the internal list of datasets that make up this Transaction.
@@ -574,7 +576,7 @@ class Transaction():
 
         pass
 
-    def addDataset(self, dataset):
+    def addDataset(self, dataset: DatasetHandle) -> bool:
 
         """
         Add a new dataset to this Transaction.
@@ -596,7 +598,7 @@ class Transaction():
         self._datasets.append(dataset)
         return True
 
-    def removeDataset(self, dataset):
+    def removeDataset(self, dataset: DatasetHandle) -> bool:
 
         """
         Remove a dataset from this Transaction.
@@ -609,7 +611,7 @@ class Transaction():
         self._datasets.remove(dataset)
         return True
 
-    def search(self, table, req={}):
+    def search(self, table: str, req={}):
 
         """
         Search the specified table of the database for datasets that meet the requirements.
@@ -620,7 +622,7 @@ class Transaction():
 
         pass
 
-    def union(self, other):
+    def union(self, other: "Transaction"):
 
         """
         Computes the unity of this Transaction and another Transaction object.
@@ -633,7 +635,7 @@ class Transaction():
             if not i in self:
                 self.addDataset(i)
 
-    def intersect(self, other):
+    def intersect(self, other: "Transaction"):
 
         """
         Computes the intersection of this Transaction and another Transaction object.
@@ -646,7 +648,7 @@ class Transaction():
             if not i in other:
                 self.removeDataset(i)
 
-    def diff(self, other):
+    def diff(self, other: "Transaction"):
 
         """
         Computes the difference of this Transaction and another Transaction object.
@@ -659,7 +661,7 @@ class Transaction():
             if i in other:
                 self.removeDataset(i)
 
-    def xor(self, other):
+    def xor(self, other: "Transaction"):
 
         """
         Computes the symmetric difference of this Transaction and another Transaction object.
@@ -681,7 +683,7 @@ class Transaction():
             if (not i in self) and (i in other):
                 self.addDataset(i)
 
-    def symmetricDifference(self, other):
+    def symmetricDifference(self, other: "Transaction"):
 
         """
         Computes the symmetric difference of this Transaction and another Transaction object.
@@ -735,7 +737,7 @@ class DatabaseHandle():
 
     logger = logging.getLogger("Database")
 
-    def __init__(self, path, serverID):
+    def __init__(self, path: Union[Path, str], serverID: int):
 
         """
         This class represents one database reflecting stored information about a server.
@@ -747,14 +749,14 @@ class DatabaseHandle():
 
         self.serverID = serverID
 
-        self._db = sql.connect(path+".db")
+        self._db = sql.connect(Path(path).with_suffix(".db").as_posix())
         self._cursor = self._db.cursor()
 
         self._performSetup()
 
     #Internal methods
 
-    def createTableIfNotExists(self, name, entries={}, autocommit=True):
+    def createTableIfNotExists(self, name: str, entries={}, autocommit=True):
 
         """
         Helper method for _performSetup.
@@ -796,7 +798,7 @@ class DatabaseHandle():
 
         self._db.commit()
 
-    def _getFromTable(self, table, query, values=""):
+    def _getFromTable(self, table: str, query: str, values="") -> List[list]:
 
         """
         Helper method.
@@ -809,7 +811,7 @@ class DatabaseHandle():
         self._execute("SELECT " + (values if values else "*") + " FROM "+table+" WHERE ("+query+")")
         return self._cursor.fetchall()
 
-    def _addToTable(self, table, entry, autocommit=True):
+    def _addToTable(self, table: str, entry: str, autocommit=True):
 
         """
         Helper method.
@@ -821,7 +823,7 @@ class DatabaseHandle():
         if autocommit:
             self._db.commit()
 
-    def _deleteFromTable(self, table, query, autocommit=True):
+    def _deleteFromTable(self, table: str, query: str, autocommit=True):
 
         """
         Helper method.
@@ -833,7 +835,7 @@ class DatabaseHandle():
         if autocommit:
             self._db.commit()
 
-    def _updateInTable(self, table, entry, query, autocommit=True):
+    def _updateInTable(self, table: str, entry: str, query: str, autocommit=True):
 
         """
         Helper method.
@@ -845,7 +847,7 @@ class DatabaseHandle():
         if autocommit:
             self._db.commit()
 
-    def _getTableInfo(self, table):
+    def _getTableInfo(self, table: str) -> List[list]:
 
         self._execute("PRAGMA table_info("+table+")") #returns a list of tuples like: (index, name, type, canBeNull, default(None=uninitialized), isPrimary)
 
@@ -859,7 +861,7 @@ class DatabaseHandle():
 
         return columns
 
-    def _getRowCount(self, table):
+    def _getRowCount(self, table: str) -> int:
 
         """
         Determine the amount of rows in a given table
@@ -869,7 +871,7 @@ class DatabaseHandle():
 
         return self._cursor.fetchall()[0][0] #we are looking for the first column in the first row
 
-    def addDataset(self, dataset):
+    def addDataset(self, dataset: DatasetHandle):
 
         """
         Add a dataset to the database.
@@ -879,7 +881,7 @@ class DatabaseHandle():
         self._execute("INSERT INTO "+dataset.getTable()+"("+", ".join(dataset.getColumnNames())+") VALUES ("+", ".join(["?"] * len(values))+")", values)
         self._db.commit()
 
-    def deleteDataset(self, dataset):
+    def deleteDataset(self, dataset: DatasetHandle):
 
         """
         Delete a dataset from the database. The dataset must exist in the database.
@@ -891,7 +893,7 @@ class DatabaseHandle():
         self._deleteFromTable(dataset.getTable(), "ROWID like "+str(dataset.getIndex()), True) #delete dataset
         dataset._index = -1 #dataset doesn't exist anymore, ensure index reflects this
 
-    def updateDataset(self, dataset):
+    def updateDataset(self, dataset: DatasetHandle):
 
         """
         Update a dataset in the database. The dataset must exist in the database.
@@ -909,7 +911,7 @@ class DatabaseHandle():
         self._execute("UPDATE " + dataset.getTable() + " SET " + ", ".join(pairs) + " WHERE ROWID=:ROWID", values)
         self._db.commit()
 
-    def getDataset(self, dataset) -> DatasetHandle:
+    def getDataset(self, dataset: DatasetHandle):
 
         """
         Get the dataset from in the database. Returns a dataset containing the retrieved information. It may be empty.
@@ -919,7 +921,7 @@ class DatabaseHandle():
         #Dunno if I will actually ever use this method... leave it here for now, may remove it later
         pass
 
-    def searchDataset(self, dataset, req={}):
+    def searchDataset(self, dataset: DatasetHandle, req={}) -> bool:
 
         """
         Searches the database for a dataset that meets the specified requirements.
@@ -946,7 +948,7 @@ class DatabaseHandle():
 
         return True
 
-    def createDataset(self, table):
+    def createDataset(self, table: str) -> DatasetHandle:
 
         """
         Create a new dataset using a table as a template. This dataset is NOT guaranteed to be part of the database.
@@ -956,7 +958,7 @@ class DatabaseHandle():
 
         return DatasetHandle(self, table, -1, columns) #The -1 here tells us that this dataset has not been assigned an index yet (is uninitialized)
 
-    def createDatasetIfNotExists(self, table, req):
+    def createDatasetIfNotExists(self, table: str, req) -> DatasetHandle:
 
         """
         Convenience method.
@@ -975,7 +977,7 @@ class DatabaseHandle():
 
         return dataset
 
-    def enumerateDatasets(self, table) -> list:
+    def enumerateDatasets(self, table: str) -> List[DatasetHandle]:
 
         """
         Enumerates all Datasets in a given table and returns a list of datasets. Each dataset is guaranteed to be part of the database. It may be empty.
@@ -1012,12 +1014,12 @@ class DatabaseManager():
         since it can use caching to ensure performance and security.
         """
 
-        self.path = path
+        self.path = Path(path)
         if not os.path.isdir(path):
             os.makedirs(path, exist_ok=True) #create database directory if it doesn't exist yet
         self._cache = weakref.WeakValueDictionary()
 
-    def getServer(self, serverID):
+    def getServer(self, serverID: int) -> DatabaseHandle:
 
         """
         Load the database for the specified server and return the DatabaseHandle.
@@ -1030,11 +1032,11 @@ class DatabaseManager():
         except KeyError: #the object may have been garbage collected while we were referencing it, or just doesn't exist
             pass
 
-        handle = DatabaseHandle(self.path+"/"+str(serverID), serverID)
+        handle = DatabaseHandle(self.path / str(serverID), serverID)
         self._cache[serverID] = handle #cache our databaseHandle
         return handle
 
-    def getDatabaseByMessage(self, msg=None):
+    def getDatabaseByMessage(self, msg=None) -> DatabaseHandle:
 
         """
         Like getServer(), but accepts discord.Message objects instead of strings.
