@@ -52,7 +52,7 @@ class Stats(Command):
 
         settings = (
             "AI State: %s" % aiState,
-            "Voice Receive Hooks: %s" % ("Enabled" if self.client.voice_receive_enabled else "Disabled")
+            "Voice Receive Hooks: %s" % ("Enabled" if self.client.voice_receive is not None else "Disabled")
             )
         e.add_field(name="Settings:", value="\n".join(settings), inline=True)
 

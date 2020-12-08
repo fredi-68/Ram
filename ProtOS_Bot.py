@@ -48,7 +48,6 @@ class ProtosBot(Client):
         super().__init__()
 
         self._autosave_active = False
-        self.voice_receive_enabled = False
 
         self.event(self.on_message)
         self.event(self.on_ready)
