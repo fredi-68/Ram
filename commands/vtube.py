@@ -25,6 +25,7 @@ class VTube(Command):
     SCHEDULE_SLEEP_INTERVAL = 60 #seconds
     SCHEDULE_UPDATE_FREQUENCY = 1 #per hour
     SCHEDULE_CHECK_FREQUENCY = 60 #per hour
+    SCHEDULE_REEVALUATION_INTERVAL = 300 #seconds
 
     ICS_URI = "https://sarisia.cc/holodule-ics/holodule-english.ics"
     #ICS_URI = "https://sarisia.cc/holodule-ics/holodule-all.ics"
@@ -133,7 +134,7 @@ class VTube(Command):
                 self.logger.error("Event %s has ended, but never went live. Cancelling reevaluation tasks." % repr(event))
                 return
 
-            delay = 1/self.SCHEDULE_CHECK_FREQUENCY*60*60
+            delay = self.SCHEDULE_REEVALUATION_INTERVAL
             self.logger.warn("Event %s is running late, scheduling for reevaluation in %f second(s)." % (repr(event), delay))
             
             async def reevaluate():
