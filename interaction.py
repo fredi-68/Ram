@@ -386,7 +386,7 @@ class Namespace():
 
 class EventHandle():
 
-    def __init__():
+    def __init__(self):
 
         pass
 
@@ -499,10 +499,10 @@ class DSLParser():
         ("string", '".+?[^%]"'), #A string starts with " and ends with ", except if it is prepended with a % character
         ("actionSeparator", "->"),
         ("condSeparator", ", ?"),
-        ("condAndStart", "\("),
-        ("condAndEnd", "\)"),
-        ("condOrStart", "\["),
-        ("condOrEnd", "\]"),
+        ("condAndStart", "\\("),
+        ("condAndEnd", "\\)"),
+        ("condOrStart", "\\["),
+        ("condOrEnd", "\\]"),
         ("separator", " +"),
         ("inversion", "!"),
         ("substring", "#"),
@@ -525,7 +525,7 @@ class DSLParser():
         Parses the code and returns a sequence of tokens.
         """
 
-        tokens = []
+        #tokens = []
 
         self.logger.info("Parsing file...")
 
