@@ -36,7 +36,7 @@ class VTube(Command):
 
     #Scheduler timings
     SCHEDULE_SLEEP_INTERVAL = 60 #time the scheduler sleeps between task checks, in seconds
-    SCHEDULE_UPDATE_FREQUENCY = 1 #times the schedule is updated, per hour
+    SCHEDULE_UPDATE_FREQUENCY = 2 #times the schedule is updated, per hour
     SCHEDULE_CHECK_FREQUENCY = 60 #times the schedule is checked for active events, per hour
     SCHEDULE_REEVALUATION_INTERVAL = 300 #seconds to wait between notification reevaluation attempts
     SCHEDULE_FORWARD_SHIFT = 0 #lookahead delay when checking for active events, in seconds
