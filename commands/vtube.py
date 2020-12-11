@@ -41,7 +41,10 @@ class VTube(Command):
     SCHEDULE_REEVALUATION_INTERVAL = 300 #seconds to wait between notification reevaluation attempts
     SCHEDULE_FORWARD_SHIFT = 0 #lookahead delay when checking for active events, in seconds
 
-    ICS_URIS = ["https://sarisia.cc/holodule-ics/holodule-english.ics"]
+    ICS_URIS = [
+        "https://sarisia.cc/holodule-ics/holodule-english.ics",
+        "https://sarisia.cc/holodule-ics/holodule-indonesia.ics"
+        ]
     #ICS_URI = "https://sarisia.cc/holodule-ics/holodule-all.ics"
 
     def setup(self):
