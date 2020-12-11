@@ -330,7 +330,7 @@ if __name__ == "__main__":
             "handlers": {
                 "hand_console": {
                     "class": "logging.StreamHandler",
-                    "level": "DEBUG",
+                    "level": "WARN",
                     "formatter": "form_default",
                     "stream": "ext://sys.stdout"
                     },
