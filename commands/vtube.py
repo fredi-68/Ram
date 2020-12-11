@@ -41,7 +41,7 @@ class VTube(Command):
     SCHEDULE_REEVALUATION_INTERVAL = 300 #seconds to wait between notification reevaluation attempts
     SCHEDULE_FORWARD_SHIFT = 0 #lookahead delay when checking for active events, in seconds
 
-    ICS_URI = "https://sarisia.cc/holodule-ics/holodule-english.ics"
+    ICS_URIS = ["https://sarisia.cc/holodule-ics/holodule-english.ics"]
     #ICS_URI = "https://sarisia.cc/holodule-ics/holodule-all.ics"
 
     def setup(self):
@@ -93,9 +93,15 @@ class VTube(Command):
         Update the schedule.
         """
 
-        req = request.Request(self.ICS_URI)
-        res = await self.loop.run_in_executor(None, lambda: request.urlopen(req))
-        self._schedule = Calendar(res.read().decode("utf-8"))
+        self.logger.info("Updating schedule using %i sources..." % len(self.ICS_URIS))
+
+        self._schedule = Calendar()
+
+        for uri in self.ICS_URIS:
+            req = request.Request(uri)
+            res = await self.loop.run_in_executor(None, lambda: request.urlopen(req))
+            self._schedule.events.update(Calendar(res.read().decode("utf-8")).events)
+
         self.logger.info("Updated schedule: %s" % repr(self._schedule))
 
     async def _check_schedule(self, now, last):
