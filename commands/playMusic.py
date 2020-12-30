@@ -163,8 +163,6 @@ class MyCommand(Command):
                 if not query:
                     return
 
-            return #TODO: Remove me
-
             #New playlist handling code
             #We need to do youtube_dl handling manually
             await self.respond("Looking for requested resource online...")
