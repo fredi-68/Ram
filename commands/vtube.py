@@ -146,7 +146,8 @@ class VTube(Command):
                         mention_role = role
                         break
                 if msg is None:
-                    msg = await ch.send((mention_role.mention if mention_role is not None else ""), embed=await self._create_embed(event, info))
+                    text = "%s, %s is streaming" % ((mention_role.mention if mention_role is not None else ""), info["streamer"])
+                    msg = await ch.send(text, embed=await self._create_embed(event, info))
                 else:
                     await msg.edit(embed=await self._create_embed(event, info))
             except:
