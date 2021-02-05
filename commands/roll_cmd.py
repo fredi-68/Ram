@@ -35,7 +35,7 @@ followed by the offset.
         
         match = self.REG_EXPR.match(formula)
         if match is None:
-            await self.respond("Invalid die formular.", True)
+            await self.respond("Invalid die formula.", True)
             return
         
         n, k, o = list(map(lambda x: int(x) if x is not None else 0, match.groups()))
