@@ -9,8 +9,8 @@ class MyCommand(Command):
 
         self.name = "random"
         self.desc = "Chat helper. Posts a random number."
-        self.addArgument(Argument("lower", CmdTypes.INT))
-        self.addArgument(Argument("upper", CmdTypes.INT))
+        self.addArgument(IntArgument("lower"))
+        self.addArgument(IntArgument("upper"))
 
     async def call(self, lower, upper, **kwargs):
 

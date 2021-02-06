@@ -47,8 +47,8 @@ class CmdTempElevate(Command):
         self.desc = "Elevate a users permission. This command will add an exception to a users permissions that allows them to bypass any command specific permissions.\nThis effect only lasts until the bot restarts."
         self.hidden = True
         self.ownerOnly = True
-        self.addArgument(Argument("action", CmdTypes.STR))
-        self.addArgument(Argument("user", CmdTypes.MEMBER))
+        self.addArgument(StringArgument("action"))
+        self.addArgument(MemberArgument("user"))
 
     async def call(self, action, user):
 

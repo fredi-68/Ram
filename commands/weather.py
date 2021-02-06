@@ -26,7 +26,7 @@ class WeatherCommand(Command):
             self.ENABLE_GRAPH = False
 
         if self.ENABLE_GRAPH:
-            self.addArgument(Argument("style", CmdTypes.STR, True))
+            self.addArgument(StringArgument("style", True))
             graph_desc = """You can choose to have the report displayed as a table embed or a multigraph view.
 Do this by specifying `embed` or `graph` as the first argument respectively.
 If ommitted, this defaults to `embed`."""

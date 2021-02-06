@@ -9,7 +9,7 @@ class MyCommand(Command):
         
         self.name = "twitch"
         self.desc = "Posts a link to your twitch page and what game you are playing. Stream has to be live for it to work."
-        self.addArgument(Argument("channel", CmdTypes.STR))
+        self.addArgument(StringArgument("channel"))
         self.allowConsole = False
         self._twitchClient = None
 

@@ -6,23 +6,13 @@ from .enums import CmdTypes
 
 class Argument():
 
-    def __init__(self, name: str, type=CmdTypes.STR, optional=False, default=None):
+    def __init__(self, name: str, optional=False, default=None):
 
-        """
-        Creates a new argument descriptor with a name and an associated type.
-        If the argument is optional, the default should be set to a value accepted by the specified type.
-        """
-
-        self.name = name
-        self.type = type
-        self.optional = bool(optional)
+        self.name = name.lower()
+        self.optional = optional
         self.default = default
 
-    def parse(self, token: str) -> object:
-        
-        """
-        Parse a string token, return a type depending on the type of the argument instance.
-        """
+    async def parse(self, client: "ProtosBot", argument: str, response_handle: "ResponseManager", command: "Command") -> object:
 
         raise NotImplementedError
 

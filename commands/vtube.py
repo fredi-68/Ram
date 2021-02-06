@@ -54,8 +54,8 @@ class VTube(Command):
         self.permissions.administrator = True
         self.allowDelimiters = False
 
-        self.addArgument(Argument("action", CmdTypes.STR))
-        self.addArgument(Argument("channel", CmdTypes.CHANNEL, True))
+        self.addArgument(StringArgument("action"))
+        self.addArgument(ChannelArgument("channel", True))
 
         self._schedule = None
         self._task_runner_handle = self.loop.create_task(self._task_runner())

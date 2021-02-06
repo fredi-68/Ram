@@ -10,7 +10,7 @@ class MyCommand(Command):
         self.aliases.append("showQueue")
         self.desc = "Show the audio queue for the specified channel."
         self.allowConsole = False
-        self.addArgument(Argument("channel", CmdTypes.CHANNEL, True))
+        self.addArgument(ChannelArgument("channel", True))
 
     async def call(self, channel=None, **kwargs):
 

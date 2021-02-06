@@ -99,7 +99,7 @@ class CommandParser():
                     final_args.append(await argument.parse(client, consolidated_argument, response_handle, command))
 
                 command._setVariables(client, response_handle)
-                await command.call(**final_args)
+                await command.call(*final_args)
 
         raise CommandNotFoundException("That command does not exist.")
 

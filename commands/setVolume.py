@@ -9,8 +9,8 @@ class MyCommand(Command):
         self.name = "volume"
         self.desc = "Set the volume for the active voice channel.\nRun without any arguments to get the current volume of this channel."
         self.allowConsole = False
-        self.addArgument(Argument("volume", CmdTypes.FLOAT, True))
-        self.addArgument(Argument("server", CmdTypes.SERVER, True))
+        self.addArgument(FloatArgument("volume", True))
+        self.addArgument(ServerArgument("server", True))
         self.permissions.move_members = True
 
     async def call(self, volume=None, server=None, **kwargs):

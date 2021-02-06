@@ -61,7 +61,7 @@ class MyCommand(Command):
         self.name = "slay"
         self.desc = "Slay someone (or something)."
         self.aliases = ["annihilate", "destroy", "kill"]
-        self.addArgument(Argument("victim", CmdTypes.STR))
+        self.addArgument(StringArgument("victim"))
         self.allowConsole = False
 
     async def call(self, victim, **kwargs):

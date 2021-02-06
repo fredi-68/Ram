@@ -9,7 +9,7 @@ class MyCommand(Command):
         self.name = "spawn"
         self.aliases.append("pspawn")
         self.desc = "Spawn a shell and execute a command."
-        self.addArgument(Argument("cmd", CmdTypes.STR))
+        self.addArgument(StringArgument("cmd"))
         self.allowChat = False
         self.hidden = True
 

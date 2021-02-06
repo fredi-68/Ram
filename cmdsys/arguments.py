@@ -4,18 +4,8 @@ from chatutils import getChannelMention, getMention, getRoleMention, getRole
 
 from .errors import ArgumentException, CommandCallAbortedException
 from .utils import dialogReact
+from .abcs import Argument
 
-class Argument():
-
-    def __init__(self, name: str, optional=False, default=None):
-
-        self.name = name.lower()
-        self.optional = optional
-        self.default = default
-
-    async def parse(self, client: "ProtosBot", argument: str, response_handle: "ResponseManager", command: "Command") -> object:
-
-        raise NotImplementedError
 
 class StringArgument(Argument):
 

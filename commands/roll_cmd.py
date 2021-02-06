@@ -29,7 +29,7 @@ You can add a constant offset to the result by following the roll with a `+`,
 followed by the offset.
     */roll 1d8+3*
         """
-        self.addArgument(Argument("formula", CmdTypes.STR))
+        self.addArgument(StringArgument("formula"))
 
     async def call(self, formula):
         

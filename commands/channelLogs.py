@@ -9,8 +9,8 @@ class MyCommand(Command):
         self.aliases.append("channelAuditLog")
         self.aliases.append("chLog")
         self.desc = "Manage audit log channels.\nAction can be either 'add' or 'remove'. If channel isn't specified, it defaults to the current channel."
-        self.addArgument(Argument("action", CmdTypes.STR))
-        self.addArgument(Argument("channel", CmdTypes.CHANNEL, True))
+        self.addArgument(StringArgument("action"))
+        self.addArgument(ChannelArgument("channel", True))
         self.permissions.administrator = True
 
     async def call(self, action, channel=None, **kwargs):

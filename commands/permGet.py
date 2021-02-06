@@ -8,8 +8,8 @@ class MyCommand(Command):
         self.name = "pget"
         self.desc = "Get a members permissions."
         self.aliases.append("permget")
-        self.addArgument(Argument("member",CmdTypes.MEMBER))
-        self.addArgument(Argument("channel",CmdTypes.CHANNEL,True,None))
+        self.addArgument(MemberArgument("member"))
+        self.addArgument(ChannelArgument("channel", True, None))
 
     async def call(self, member, channel=None, **kwargs):
 

@@ -13,7 +13,7 @@ class MyCommand(Command):
         self.name = "addrole"
         self.aliases.append("giverole")
         self.desc = "Add a self assignable role to your member account."
-        self.addArgument(Argument("role", CmdTypes.STR))
+        self.addArgument(StringArgument("role"))
         self.allowConsole = False
 
     async def call(self, role, **kwargs):

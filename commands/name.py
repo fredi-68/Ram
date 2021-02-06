@@ -8,7 +8,7 @@ class MyCommand(Command):
         self.name = "name"
         self.desc = "Change the name of the bot."
         self.ownerOnly = True
-        self.addArgument(Argument("username",type=CmdTypes.STR))
+        self.addArgument(StringArgument("username"))
 
     async def call(self, username, **kwargs):
 

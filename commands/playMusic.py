@@ -58,7 +58,7 @@ class MyCommand(Command):
             ]
 
         self.desc = "\n".join(self._descLines)
-        self.addArgument(Argument("query", CmdTypes.STR))
+        self.addArgument(StringArgument("query"))
         self.allowConsole = False
 
     async def search(self, query, engine, color):

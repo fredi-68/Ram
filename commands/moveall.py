@@ -7,8 +7,8 @@ class MyCommand(Command):
 
         self.name = "moveall"
         self.desc = "Move all members in a voice channel to a different voice channel."
-        self.addArgument(Argument("fromCh",CmdTypes.CHANNEL))
-        self.addArgument(Argument("toCh",CmdTypes.CHANNEL))
+        self.addArgument(ChannelArgument("fromCh"))
+        self.addArgument(ChannelArgument("toCh"))
         self.permissions.administrator = True
 
     async def call(self, fromCh, toCh, **kwargs):

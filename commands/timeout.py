@@ -12,8 +12,8 @@ class MyCommand(Command):
         self.aliases.append("to")
         self.desc = "Gives the targeted user a timeout role for a variable amount of time (the default is 10 minutes).\nOptional duration parameter specifies the length of the timeout in minutes.\nAll timeouts will be lifted upon bot termination.\n\nTimeout role can be configured using the 'rt' command (admin only)"
         self.permissions.kick_members = True
-        self.addArgument(Argument("member", CmdTypes.MEMBER))
-        self.addArgument(Argument("duration", CmdTypes.INT, True))
+        self.addArgument(MemberArgument("member"))
+        self.addArgument(IntArgument("duration", True))
 
         self.allowDelimiters = False
 

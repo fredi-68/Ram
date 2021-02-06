@@ -10,7 +10,7 @@ class VoiceLeave(Command):
         self.desc = "Leave the bots current voice channel."
 
         self.permissions.administrator = True #pylint: disable=assigning-non-slot
-        self.addArgument(Argument("server", CmdTypes.SERVER, True))
+        self.addArgument(ServerArgument("server", True))
 
     async def call(self, server=None):
 

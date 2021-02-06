@@ -9,7 +9,7 @@ class MyCommand(Command):
         self.desc = "Process logic instructions."
         #self.permissions.administrator = True
         self.ownerOnly = True
-        self.addArgument(Argument("statement", CmdTypes.STR))
+        self.addArgument(StringArgument("statement"))
 
     async def call(self, statement, **kwargs):
 

@@ -8,8 +8,8 @@ class MyCommand(Command):
         self.name = "nick"
         self.desc = "Change the nickname of a member."
         self.permissions.administrator = True
-        self.addArgument(Argument("member",CmdTypes.MEMBER))
-        self.addArgument(Argument("name",CmdTypes.STR))
+        self.addArgument(MemberArgument("member"))
+        self.addArgument(StringArgument("name"))
 
     async def call(self, member, name, **kwargs):
 

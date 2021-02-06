@@ -9,7 +9,7 @@ class MyCommand(Command):
         
         self.name = "block"
         self.desc = "Blocks a user from using bot commands."
-        self.addArgument(Argument("member", CmdTypes.MEMBER))
+        self.addArgument(MemberArgument("member"))
         self.ownerOnly = True
         self.hidden = True
 

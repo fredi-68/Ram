@@ -9,8 +9,8 @@ class MyCommand(Command):
         self.aliases.append("channelBan")
         self.aliases.append("chBan")
         self.desc = "Manage channel bans.\nAction can be either 'ban' or 'unban'. If channel isn't specified, it defaults to the current channel."
-        self.addArgument(Argument("action", CmdTypes.STR))
-        self.addArgument(Argument("channel", CmdTypes.CHANNEL, True))
+        self.addArgument(StringArgument("action"))
+        self.addArgument(ChannelArgument("channel", True))
         self.ownerOnly = True
 
     async def call(self, action, channel=None, **kwargs):

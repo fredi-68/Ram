@@ -30,7 +30,7 @@ class MyCommand(Command):
         self.name = "8ball"
         self.desc = "Ask the magic 8-ball a question. The answer may or may not confuse you."
         self.aliases = ["eightball"]
-        self.addArgument(Argument("question",CmdTypes.STR))
+        self.addArgument(StringArgument("question"))
         self.allowConsole = False
 
     async def call(self, question, **kwargs):

@@ -11,7 +11,7 @@ class EvalCmd(Command):
         self.desc = "Process expressions."
         #self.permissions.administrator = True
         self.ownerOnly = True
-        self.addArgument(Argument("expression", CmdTypes.STR))
+        self.addArgument(StringArgument("expression"))
 
     async def call(self, expression, **kwargs):
 

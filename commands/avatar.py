@@ -10,7 +10,7 @@ class MyCommand(Command):
         self.name = "avatar"
         self.desc = "Upload an image to discord as a profile picture"
         self.ownerOnly = True
-        self.addArgument(Argument("filename", CmdTypes.STR))
+        self.addArgument(StringArgument("filename"))
 
     async def call(self, filename, **kwargs):
 

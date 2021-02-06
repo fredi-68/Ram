@@ -7,7 +7,7 @@ class MyCommand(Command):
 
         self.name = "weeb"
         self.desc = "Show someone the way of the weeb."
-        self.addArgument(Argument("member", CmdTypes.MEMBER))
+        self.addArgument(MemberArgument("member"))
         self.ownerOnly = True
         self.hidden = True
 

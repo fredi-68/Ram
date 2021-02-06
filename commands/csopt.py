@@ -12,9 +12,9 @@ class CSOpt(Command):
 
         self.ownerOnly = True
 
-        self.addArgument(Argument("action", CmdTypes.STR))
-        self.addArgument(Argument("option", CmdTypes.STR))
-        self.addArgument(Argument("value", CmdTypes.STR, True))
+        self.addArgument(StringArgument("action"))
+        self.addArgument(StringArgument("option"))
+        self.addArgument(StringArgument("value", True))
 
     async def getHelp(self):
         

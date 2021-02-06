@@ -14,9 +14,9 @@ class CmdPin(Command):
                 self.name = "enable"
                 self.desc = "Configure the emote used for reaction based pinning."
 
-                self.addArgument(Argument("count", CmdTypes.INT, False))
-                self.addArgument(Argument("emote", CmdTypes.EMOTE, True))
-                self.addArgument(Argument("needs_mod", CmdTypes.BOOL, True))
+                self.addArgument(IntArgument("count", False))
+                self.addArgument(StringArgument("emote", True))
+                self.addArgument(BoolArgument("needs_mod", True))
 
             async def call(self, count, emote="", needs_mod=False):
 
@@ -31,7 +31,7 @@ class CmdPin(Command):
             self.name = "reaction"
             self.desc = "Configure the reaction based pin interface. Action should be either 'enable' or 'disable'."
 
-            self.addArgument(Argument("action", CmdTypes.STR, False))
+            self.addArgument(StringArgument("action", False))
             self.addSubcommand(self.PinConfigEmote())
 
         async def call(self, action):
@@ -52,7 +52,7 @@ class CmdPin(Command):
         self.name = "pin"
         self.desc = "'Pins' a message to a channel by copying it to a predefined pin channel."
         self.permissions.administrator = True
-        self.addArgument(Argument("message", CmdTypes.MESSAGE))
+        self.addArgument(MessageArgument("message"))
         self.allowConsole = False
 
         self.addSubcommand(self.PinConfig())

@@ -9,7 +9,7 @@ class MyCommand(Command):
         self.aliases.append("roleTimeout")
         self.aliases.append("roleTo")
         self.desc = "Manage the timeout role."
-        self.addArgument(Argument("role", CmdTypes.ROLE))
+        self.addArgument(RoleArgument("role"))
         self.permissions.administrator = True
 
     async def call(self, role, **kwargs):

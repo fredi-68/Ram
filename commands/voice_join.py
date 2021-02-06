@@ -8,7 +8,7 @@ class VoiceJoin(Command):
         self.name = "voice"
         self.desc = "Join the voice channel you are currently in."
 
-        self.addArgument(Argument("channel", CmdTypes.CHANNEL, True))
+        self.addArgument(ChannelArgument("channel", True))
 
     async def call(self, channel=None):
 

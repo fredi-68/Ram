@@ -9,7 +9,7 @@ class MyCommand(Command):
         self.desc = "Experimental"
         self.allowConsole = False
         self.ownerOnly = True
-        self.addArgument(Argument("user", CmdTypes.USER))
+        self.addArgument(UserArgument("user"))
 
         self.initLib()
 

@@ -8,8 +8,8 @@ class MyCommand(Command):
         self.name = "purge"
         self.desc = "Purges all messages up to a specific message."
         self.permissions.manage_messages = True
-        self.addArgument(Argument("message", CmdTypes.MESSAGE))
-        self.addArgument(Argument("user", CmdTypes.MEMBER, True))
+        self.addArgument(MessageArgument("message"))
+        self.addArgument(MemberArgument("user", True))
         self.allowConsole = False
 
         self.allowDelimiters = False

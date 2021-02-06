@@ -10,7 +10,7 @@ class MyCommand(Command):
         self.aliases.append("AIState")
         self.desc = "Set the operation mode of the conversation simulator.\nValid states are 'active', 'passive' and 'off'"
         self.ownerOnly = True
-        self.addArgument(Argument("state", CmdTypes.STR))
+        self.addArgument(StringArgument("state"))
 
     async def call(self, state, **kwargs):
 

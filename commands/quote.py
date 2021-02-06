@@ -13,9 +13,9 @@ class CmdQuote(Command):
         self.aliases.append("qt")
         self._original_desc = "Access member quote storage."
         self.desc = self._original_desc
-        self.addArgument(Argument("user", CmdTypes.STR, True))
-        self.addArgument(Argument("mode", CmdTypes.STR, True))
-        self.addArgument(Argument("quote", CmdTypes.STR, True))
+        self.addArgument(StringArgument("user", True))
+        self.addArgument(StringArgument("mode", True))
+        self.addArgument(StringArgument("quote", True))
 
     async def getHelp(self):
         

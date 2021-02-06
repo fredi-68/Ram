@@ -36,7 +36,7 @@ Enter search parameters using -<command> <argument> formatting. The following pa
 
 Arguments can be escaped using quotes. Parameters can be used more than once to match multiple sequences."""
 
-        self.addArgument(Argument("query", CmdTypes.STR))
+        self.addArgument(StringArgument("query"))
 
     async def getSheet(self, documentID):
 

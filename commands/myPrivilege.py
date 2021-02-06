@@ -20,7 +20,7 @@ class MyCommand(Command):
         self.desc = "See how privileged you are. Optional target argument can be a user or 'ranking' to show the leaderboard"
         self.aliases.append("myPrivilege")
         self.allowConsole = False
-        self.addArgument(Argument("target", CmdTypes.STR, True))
+        self.addArgument(StringArgument("target", True))
 
     async def call(self, target="", **kwargs):
 

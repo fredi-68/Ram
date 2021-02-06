@@ -13,9 +13,9 @@ class MyCommand(Command):
         self.name = "meme"
         self.desc = "Meme generator."
         self.allowConsole = False
-        self.addArgument(Argument("template", CmdTypes.STR))
-        self.addArgument(Argument("line1", CmdTypes.STR))
-        self.addArgument(Argument("line2", CmdTypes.STR, True))
+        self.addArgument(StringArgument("template"))
+        self.addArgument(StringArgument("line1"))
+        self.addArgument(StringArgument("line2", True))
 
         self.initLib()
 

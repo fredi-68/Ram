@@ -18,8 +18,8 @@ class MyCommand(Command):
 
         NOTE: To use flags, specifying an explicit index is mandatory.
         """
-        self.addArgument(Argument("index", CmdTypes.INT, True))
-        self.addArgument(Argument("flags", CmdTypes.STR, True))
+        self.addArgument(IntArgument("index", True))
+        self.addArgument(StringArgument("flags", True))
         self.permissions.move_members = True
         self.allowConsole = False
 

@@ -12,8 +12,8 @@ class FFMPEGCommand(Command):
         self.name = "ffmpeg"
         self.desc = "Low level interface for creating and playing ffmpeg sounds. For more information see ffmpeg.org"
         self.aliases.append("ffplay")
-        self.addArgument(Argument("target", CmdTypes.STR))
-        self.addArgument(Argument("options", CmdTypes.STR, True))
+        self.addArgument(StringArgument("target"))
+        self.addArgument(StringArgument("options", True))
         self.ownerOnly = True
         self.allowConsole = False
 

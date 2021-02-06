@@ -12,8 +12,8 @@ class MyCommand(Command):
         self.name = "psys"
         self.desc = "Play system sound effects. This command is highly experimental!"
         self.allowChat = False
-        self.addArgument(Argument("channel", CmdTypes.CHANNEL))
-        self.addArgument(Argument("path", CmdTypes.STR))
+        self.addArgument(ChannelArgument("channel"))
+        self.addArgument(StringArgument("path"))
         self.hidden = True
 
     async def call(self, channel, path, **kwargs):
