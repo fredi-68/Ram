@@ -18,10 +18,11 @@ class Environment():
         """
 
         self._env.update(env)
-        self.logger.debug("Environment updated: %s" % str(self._env))
+        self.logger.info("Environment updated: %s" % str(self._env))
 
-    def __getattribute__(self, name):
+    def __getattr__(self, name):
         
+        self.logger.debug("Requested environment variable %s" % name)
         return self._env[name]
 
 environment = Environment()
