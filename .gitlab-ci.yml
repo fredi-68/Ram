@@ -23,6 +23,7 @@ stages:
   - build
 
 test-job:
+  only: master
   stage: test
   script:
     - python -V               # Print out python version for debugging
@@ -34,6 +35,7 @@ test-job:
     - python -m unittest discover
 
 build-job:
+  only: master
   stage: build
   # we have to override the image for building the dockerfile.
   # since we don't need a runtime environment we can skip setting up all the requirements as well.
