@@ -78,6 +78,15 @@ class ProtosBot(Client):
                 self.logger.exception("Exception occured while loading CIDSL script at %s: " % p)
             f.close()
 
+        cmdsys.environment.update_environment({
+            "config": self.config,
+            "database": self.database,
+            "audio": self.audio,
+            "conversation_simulator": self.cs,
+            "voice_receive": self.voice_receive,
+            "cidsl": self.cidsl
+            })
+
         self.load_commands()
 
         self.token = token or self.config.getElementText("bot.token")
