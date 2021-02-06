@@ -2,8 +2,6 @@ import logging
 import asyncio
 import discord
 
-from .enums import CmdTypes
-
 class Argument():
 
     def __init__(self, name: str, optional=False, default=None):

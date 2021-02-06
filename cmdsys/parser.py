@@ -9,7 +9,6 @@ import interaction
 import chatutils
 
 from .abcs import Command, Argument
-from .enums import CmdTypes
 from ._globals import SUPERUSERS
 from .errors import *
 from .utils import dialogReact

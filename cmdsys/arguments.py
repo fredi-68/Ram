@@ -6,7 +6,6 @@ from .errors import ArgumentException, CommandCallAbortedException
 from .utils import dialogReact
 from .abcs import Argument
 
-
 class StringArgument(Argument):
 
     async def parse(self, client, argument, response_handle, command):
