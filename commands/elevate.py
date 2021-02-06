@@ -12,14 +12,14 @@ class Sudo(Command):
         self.hidden = True
         self.ownerOnly = True #only the bot owner should ever be able to gain root access
         self.allowConsole = False #having access to this on the console wouldn't make much sense
-        self.addArgument(Argument("cmd", CmdTypes.STR))
+        self.addArgument(StringArgument("cmd"))
         self._cmd = ""
 
     async def call(self, cmd):
 
         self._cmd = cmd.encode()
         responseHandle = RPCResponse(reader=self, writer=self)
-        await processCommand(responseHandle, self.client.commands, self.config, self.client, self.db, self.audioManager)
+        await CommandParser().parse_command(responseHandle, self.client.commands, self.client)
 
     #Standard bytestream interface methods go here
 
