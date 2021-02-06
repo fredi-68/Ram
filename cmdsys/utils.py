@@ -122,7 +122,6 @@ def load_commands(path):
                     try:
                         cmd = thing()
                     except BaseException as e:
-                        raise
                         logger.warn("Initializing command extension failed (source: %s): %s" % (i, str(e)))
                         logger.debug(traceback.format_exc())
                         continue
