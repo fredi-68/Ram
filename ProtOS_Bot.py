@@ -63,8 +63,6 @@ class ProtosBot(Client):
             self.voice_receive = ConnectionListener(self, RhasspyRE(rhasspy_address))
             self.logger.warn("Voice receive hooks have been ENABLED. This is considered an experimental feature and should be used with great caution.")
 
-        self.load_commands()
-
         self.cidsl_parser = interaction.DSLParser()
         self.cidsl = interaction.DSLInterpreter(self)
         self.cidsl.registerAudioEngine(self.audio)
@@ -79,6 +77,8 @@ class ProtosBot(Client):
             except:
                 self.logger.exception("Exception occured while loading CIDSL script at %s: " % p)
             f.close()
+
+        self.load_commands()
 
         self.token = token or self.config.getElementText("bot.token")
 
