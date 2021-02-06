@@ -88,8 +88,11 @@ class CommandParser():
                 arg_c = len(command.arguments)
                 for i in range(arg_c):
                     argument = command.arguments[i]
-                    if len(arguments) < 1 and not argument.optional:
-                        raise CommandCallFailedException("Not enough arguments provided.")
+                    if len(arguments) < 1:
+                        if not argument.optional:
+                            raise CommandCallFailedException("Not enough arguments provided.")
+                        else:
+                            break # we are out of arguments anyway and the remaining ones should all be optional
                     if arg_c - i < 2:
                         consolidated_argument = " ".join(arguments)
                     else:
@@ -99,6 +102,7 @@ class CommandParser():
 
                 command._setVariables(client, response_handle)
                 await command.call(*final_args)
+                return
 
         raise CommandNotFoundException("That command does not exist.")
 
