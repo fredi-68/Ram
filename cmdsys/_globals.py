@@ -23,6 +23,9 @@ class Environment():
     def __getattr__(self, name):
         
         self.logger.debug("Requested environment variable %s" % name)
-        return self._env[name]
+        try:
+            return self._env[name]
+        except KeyError as e:
+            raise AttributeError(name)
 
 environment = Environment()

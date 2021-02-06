@@ -80,7 +80,7 @@ class ProtosBot(Client):
 
         cmdsys.environment.update_environment({
             "config": self.config,
-            "database": self.database,
+            "database": self.db,
             "audio": self.audio,
             "conversation_simulator": self.cs,
             "voice_receive": self.voice_receive,
