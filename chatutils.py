@@ -5,6 +5,7 @@
 #Chat convenience methods. These mainly deal with string analysis and formatting
 
 import re
+import shlex
 
 #REGULAR EXPRESSIONS
 
@@ -58,13 +59,15 @@ def splitCommandString(cmd):
     Split argument string and return commmand and arguments as a list of strings
     """
 
-    res = re_split_cmd.split(cmd)
-    words = []
-    for i in res:
-        if i:
-            words.append(i.strip('" '))
+    return shlex.split(cmd)
 
-    return words
+    # res = re_split_cmd.split(cmd)
+    # words = []
+    # for i in res:
+    #     if i:
+    #         words.append(i.strip('" '))
+
+    # return words
 
 def checkForWords(words, s, ignoreCase=True):
 

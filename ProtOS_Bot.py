@@ -52,6 +52,7 @@ class ProtosBot(Client):
         self.event(self.on_message)
         self.event(self.on_ready)
 
+        self.command_parser = cmdsys.CommandParser()
         self.config = ConfigManager(path=self.CFG_PATH / "bot.xml", requireVersion=2)
         self.db = DatabaseManager(path=self.CFG_PATH / "db")
         self.audio = AudioManager(self)
@@ -163,7 +164,7 @@ class ProtosBot(Client):
 
         if msg.content.startswith(self.config.getElementText("bot.prefix")):
             responseHandle = ChatResponse(self, msg)
-            await cmdsys.processCommand(responseHandle, self, self.commands)
+            await self.command_parser.parse_command(responseHandle, self.commands, self)
 
         else:
 
