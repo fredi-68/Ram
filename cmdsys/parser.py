@@ -23,9 +23,24 @@ class CommandParser():
 
         pass
 
-    async def get_help(self, cmd, args):
+    async def get_help(self, arguments: Iterable[str], command_list: Iterable[Command], response_handle: "ResponseManager") -> bool:
 
-        pass
+        if not arguments:
+            return False
+        for command in command_list:
+            if arguments[0] in command.names:
+                #do we have more arguments (for subcommands)?
+                if await self.get_help(arguments[1:], command.subcommands, response_handle):
+                    return True
+                #help requested for this command
+                command._setVariables(response_handle)
+                await response_handle.reply(await command.getHelp())
+                return True
+        return False
+
+    async def print_command_list(self, command_list: Iterable[Command], response_handle: "ResponseManager"):
+
+        await response_handle.reply("Available commands:\n\n" + "\n".join([i.getUsage() for i in command_list]))
 
     async def _parse_command(self, response_handle, command_string, arguments, command_list, client):
 
@@ -100,13 +115,13 @@ class CommandParser():
                     
                     final_args.append(await argument.parse(client, consolidated_argument, response_handle, command))
 
-                command._setVariables(client, response_handle)
+                command._setVariables(response_handle)
                 await command.call(*final_args)
                 return
 
         raise CommandNotFoundException("That command does not exist.")
 
-    async def parse_command(self, response_handle: "ResponseManager", command_list: Iterable["Command"], client: "ProtosBot") -> None:
+    async def parse_command(self, response_handle: "ResponseManager", command_list: Iterable[Command], client: "ProtosBot") -> None:
 
         """
         parse and execute a command.
@@ -141,7 +156,12 @@ class CommandParser():
             args = []
 
         if cmd in self.HELP_COMMAND_ALIASES:
-            return await self.get_help(cmd, args)
+            if not args:
+                return await self.print_command_list(command_list, response_handle)
+            if await self.get_help(args, command_list, response_handle):
+                return
+            await response_handle.reply("Unknown command '%s'" % cmd)
+            return
 
         try:
             await self._parse_command(response_handle, cmd, args, command_list, client)

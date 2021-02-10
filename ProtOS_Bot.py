@@ -79,6 +79,7 @@ class ProtosBot(Client):
             f.close()
 
         cmdsys.environment.update_environment({
+            "client": self,
             "config": self.config,
             "database": self.db,
             "audio": self.audio,

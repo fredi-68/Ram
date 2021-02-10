@@ -181,15 +181,15 @@ class Command():
 
         """
         Get a usage string for the command e.g.
-        "Usage: +test <arg1> [arg2]" 
+        "+test <arg1> [arg2]" 
         """
 
         cmds = [self.name]
         cmds.extend(self.aliases)
 
-        prefix = self.config.getElementText("bot.prefix","+")
+        prefix = environment.config.getElementText("bot.prefix","+")
 
-        s = "Usage: **"+prefix+(", "+prefix).join(cmds)+"** "
+        s = "**"+prefix+(", "+prefix).join(cmds)+"** "
         for i in self.arguments:
             if i.optional:
                 s += "["+i.name+"] "
@@ -229,7 +229,7 @@ class Command():
                         perms.append(name)
                 s += "\nThis command requires the following permissions: `%s`" % ", ".join(perms)
 
-        s += "\n\n"+self.getUsage()+"\n"
+        s += "\n\nUsage: "+self.getUsage()+"\n"
 
         if len(self.arguments) < 1:
             return s #skip argument header completely if we don't have any arguments
@@ -241,16 +241,18 @@ class Command():
                 s += "optional"
             else:
                 s += "required"
-            s += ") type '"+str(i.type)+"'\n"
+            s += ") type '"+i.__class__.__name__+"'\n"
 
         return s
 
-    def _setVariables(self, client: "ProtosBot", responseHandle: "ResponseManager"):
+    def _setVariables(self, responseHandle: "ResponseManager"):
 
         """
         Internal method.
         Sets the environment attributes
         """
+
+        client = environment.client
 
         self.client = client
         self.config = client.config
