@@ -120,9 +120,15 @@ class DatabaseEngine():
         Do not call this method directly. Call it on the model instance instead.
         """
 
-        query = self._update(model) if model._bound else self._insert(model)
+        bound = model._bound
+        query = self._update(model) if bound else self._insert(model)
         self._execute(query)
         model._bound = True
+
+        if bound:
+            self.on_update(model)
+        else:
+            self.on_insert(model)
 
     def delete(self, model: Model):
 
@@ -133,6 +139,8 @@ class DatabaseEngine():
 
         self._execute(self._delete(model))
         model._bound = False
+
+        self.on_delete(model)
 
     def fetch(self, query: Query) -> Sequence[Model]:
 
@@ -173,6 +181,36 @@ class DatabaseEngine():
         query = self._create_model(model_cls)
         self._execute(query)
 
+    def on_insert(self, model: Model):
+
+        """
+        Subclass hook for insert events.
+
+        This method is called every time a model instance is inserted with the instance as a single argument.
+        """
+
+        pass
+
+    def on_update(self, model: Model):
+
+        """
+        Subclass hook for update events.
+
+        This method is called every time a model instance is updated in the database with the instance as a single argument.
+        """
+
+        pass
+
+    def on_delete(self, model: Model):
+
+        """
+        Subclass hook for deletion events.
+
+        This method is called every time a model instance is deleted from the database with the instance as a single argument.
+        """
+
+        pass
+
 class SQLiteEngine(DatabaseEngine):
 
     def connect(self, path: Path, *args, **kwargs) -> bool:
@@ -208,7 +246,7 @@ class SQLiteEngine(DatabaseEngine):
             models.append(model)
         return models
 
-    def _execute(self, query, args=[], kwargs=[]):
+    def _execute(self, query, args=[], kwargs={}):
         
         parameters = args or kwargs
         self.logger.debug("Executing query '%s' with arguments '%s'." % (query, repr(parameters)))
@@ -264,8 +302,21 @@ class SQLiteEngine(DatabaseEngine):
             return 'INSERT INTO %s DEFAULT VALUES;' % model._table_name
         return 'INSERT INTO %s (%s) VALUES (%s);' % (model._table_name, ", ".join(field_names), ", ".join(field_values))
 
+    def on_insert(self, model):
+
+        # update the models values after insertion to retrieve generated values from the database
+        # (for example defaults, expressions and auto increments).
+
+        self._execute('SELECT * FROM %s WHERE ROWID=:id;' % model._table_name, kwargs={"id": self._c.lastrowid})
+        for field, value in zip(model._fields.values(), self._c.fetchone()):
+            field._set_field(value)
+
     def _update(self, model):
-        return super()._update(model)
+        
+        update_args = []
+        for name, field in model._fields.items():
+            update_args.append("%s=%s" % (name, field._get_field()))
+        return 'UPDATE %s SET %s;' % (model._table_name, ", ".join(update_args))
 
     def _delete(self, model):
         

@@ -65,3 +65,12 @@ class TestModel(TestCase):
         self.assertEqual(model.test_int, 50)
         self.assertEqual(model.test_float, None)
         self.assertEqual(model.test_string, "")
+
+    def test_model_update(self):
+
+        self.engine.register(self._Model)
+        m = self.engine.new(self._Model)
+        m.save()
+        self.assertTrue(m._bound)
+        m.test_string = "Hello World"
+        m.save()
