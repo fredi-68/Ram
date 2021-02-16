@@ -39,6 +39,10 @@ class _ModelMeta(type):
 
 class Model(metaclass=_ModelMeta):
 
+    """
+    Abstract base class for Object Relational Models.
+    """
+
     def __init__(self):
 
         """
