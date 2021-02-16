@@ -1,8 +1,5 @@
 from unittest import TestCase
 from pathlib import Path
-import logging
-
-logging.basicConfig(level=logging.DEBUG)
 
 from ..models import Model
 from ..engine import SQLiteEngine

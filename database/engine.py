@@ -10,6 +10,7 @@ from .filters import Filter
 from .constraints import *
 from .errors import DatabaseError
 from .fields import EMPTY
+from .transaction import Transaction
 
 class DatabaseEngine():
 
@@ -89,7 +90,7 @@ class DatabaseEngine():
 
         pass
 
-    def _end_transaction(self):
+    def _end_transaction(self, rollback=False):
 
         """
         Commit a transaction.
@@ -210,6 +211,16 @@ class DatabaseEngine():
         """
 
         pass
+
+    def transaction(self) -> Transaction:
+
+        """
+        Start a SQL transaction.
+
+        Returns a Transaction object which can be used as a context manager.
+        """
+
+        return Transaction(self)
 
 class SQLiteEngine(DatabaseEngine):
 
@@ -334,3 +345,14 @@ class SQLiteEngine(DatabaseEngine):
         select_args = ' AND '.join(map(lambda x: x.construct(), filters))
 
         return 'SELECT * FROM %s WHERE %s;' % (model_cls._table_name, select_args)
+
+    def _begin_transaction(self):
+        
+        self._execute("BEGIN TRANSACTION;")
+
+    def _end_transaction(self, rollback=False):
+        
+        if rollback:
+            self._execute("ROLLBACK TRANSACTION;")
+        else:
+            self._execute("COMMIT TRANSACTION;")

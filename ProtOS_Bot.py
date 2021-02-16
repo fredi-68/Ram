@@ -20,6 +20,8 @@ import interaction
 from voicecom import ConnectionListener
 from voicecom import RhasspyRE
 
+from core_models import *
+
 interaction.init()
 
 class ProtosBot(Client):

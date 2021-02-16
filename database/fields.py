@@ -140,3 +140,15 @@ class FloatField(Field):
     def _deserialize(self, value):
         
         return float(value)
+
+class BooleanField(Field):
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__("NUMBER", *args, **kwargs)
+
+    def _deserialize(self, value):
+        return bool(value)
+
+    def _serialize(self, value):
+        return "1" if value else "0"
