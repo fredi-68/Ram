@@ -60,7 +60,7 @@ class Query():
             raise RuntimeError("Specifying both Filter and kwargs is not allowed.")
 
         if self._executed:
-            pass
+            raise DatabaseError("Cannot filter a database query that has already been executed.")
         else:
             if _filter is not None:
                 self._filters.append(_filter)
