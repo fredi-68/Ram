@@ -8,6 +8,8 @@ from arrow import Arrow
 
 from cmdsys import *
 
+from database import Model, IntegerField, TextField, FloatField
+
 class MalformedPatternException(BaseException):
 
     pass
@@ -74,6 +76,12 @@ class _Handle_When(Condition):
     def check(self, last):
 
         return last.shift(seconds=self.time) < Arrow.now()
+
+class AutoPurgeJob(Model):
+
+    channel_id = IntegerField()
+    pattern = TextField()
+    last = FloatArgument(default=0)
 
 class Job():
 
