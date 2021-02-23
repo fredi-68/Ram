@@ -222,6 +222,13 @@ class DatabaseEngine():
 
         return Transaction(self)
 
+    def __del__(self):
+
+        try:
+            self.disconnect()
+        except:
+            pass
+
 class SQLiteEngine(DatabaseEngine):
 
     def connect(self, path: Path, *args, **kwargs) -> bool:
@@ -254,6 +261,7 @@ class SQLiteEngine(DatabaseEngine):
             model.connect_engine(self)
             for field, value in zip(model._fields.values(), row):
                 field._set_field(value)
+            model._bound = True
             models.append(model)
         return models
 

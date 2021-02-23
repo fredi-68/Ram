@@ -55,12 +55,11 @@ class Unblock(Command):
 
         db = self.db.get_db_by_message(self.msg)
         
-        ds = db.createDatasetIfNotExists("blockedUsers", {"userID": member.id})
         q = db.query(BlockedUser).filter(user_id=member.id)
         if len(q) < 1:
             await self.respond("This user can't be unblocked since he was never blocked in the first place.", True)
             return
 
         q.delete() #unblock user
-        await self.respond("Successfully unblocked user "+member.name+" ("+member.id+")",True)
+        await self.respond("Successfully unblocked user "+member.name+" ("+str(member.id)+")",True)
         return

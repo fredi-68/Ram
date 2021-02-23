@@ -60,8 +60,8 @@ class Command():
         self.logger = logging.getLogger("Command "+self.name)
 
         #If we don't do this, a command may be never called without it being noticed at dev time
-        self.names = [self.name]
-        self.names.extend(self.aliases)
+        self.names = [self.name.lower()]
+        self.names.extend(map(str.lower, self.aliases))
         
         for i in self.names:
             if " " in i or not i:

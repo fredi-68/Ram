@@ -72,10 +72,11 @@ class DatabaseManager():
             pass
 
         # register models
-        handle = self._engine(self.path / id)
+        handle = self._engine()
+        handle.connect(self._path / id)
         for model in self._registered_models:
             handle.register(model)
-            
+
         self._cache[id] = handle #cache our engine instance
         return handle
 
@@ -91,7 +92,7 @@ class DatabaseManager():
 
         if msg is not None:
             if msg.guild:
-                return self.getServer(msg.guild.id)
+                return self.get_db(msg.guild.id)
 
         #fall back to global database for DMs and unspecified messages
-        return self.getServer("global")
+        return self.get_db("global")
