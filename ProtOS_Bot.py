@@ -9,7 +9,7 @@ from pathlib import Path
 import discord
 from discord import Client, Message, Game
 
-from config import ConfigManager, DatabaseManager
+from config import ConfigManager
 import cmdutils
 import cmdsys
 from response_manager import ChatResponse
@@ -19,7 +19,7 @@ from conversation import BrianCS
 import interaction
 from voicecom import ConnectionListener
 from voicecom import RhasspyRE
-
+from database import DatabaseManager
 from core_models import *
 
 interaction.init()
@@ -57,6 +57,14 @@ class ProtosBot(Client):
         self.command_parser = cmdsys.CommandParser()
         self.config = ConfigManager(path=self.CFG_PATH / "bot.xml", requireVersion=2)
         self.db = DatabaseManager(path=self.CFG_PATH / "db")
+        self.db.register_model(BlockedUser)
+        self.db.register_model(BlockedChannel)
+        self.db.register_model(PinChannel)
+        self.db.register_model(AuditLogChannel)
+        self.db.register_model(TimeoutRole)
+        self.db.register_model(TimeoutCount)
+        self.db.register_model(PinReactionSettings)
+
         self.audio = AudioManager(self)
         self.cs = cs(self, self.config)
         self.voice_receive =  None
