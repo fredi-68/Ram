@@ -372,7 +372,7 @@ The returned object will be an unbound model instance. This means you cannot per
 model which doesn't exist yet). You can however begin to set the models fields. To do this, simply assign values to the instance attributes. They will be automatically
 cached in the background. No database operations are performed at all until you call Model.save(). This will instruct the DatabaseEngine() to create a record of your
 model in the database. Prior to the actual database operation a number of validators will be run on your model to ensure the values you entered are valid and within
-acceptable ranges. Some field types will also apply code injection protection at this state. Once the operation completes, your models data will be bound - meaning it
+acceptable ranges. Some field types will also apply code injection protection at this stage. Once the operation completes, your models data will be bound - meaning it
 represents a live record on the database. You may now delete it with Model.delete() or apply further changes and update it by calling save() again.
 
 To query the database for a list of models, you can call DatabaseEngine.query(model_class). This will return a Query() object linked to the DatabaseEngine as well as
@@ -412,7 +412,7 @@ FAQ
 		A: All SQL statements are logged during execution, so check the logfiles if anything weird is going on.
 
 	-	Q: I want to close the database connection. How do I do this correctly?
-		A: Neither DatabaseHandle nor DatabaseManager expose a clean up method to close open databases.
+		A: The DatabaseManager does not expose a clean up method to close open databases.
 			This is intended and one should NEVER attempt to explicitly close a database connection.
 			To ensure efficient data access and support a heavily asynchroneous program the DatabaseManager caches connected databases automatically.
 			In case of system failure, any connections are implicitly closed and any uncommitted changes will be dropped.
@@ -429,6 +429,18 @@ FAQ
 	-	Q: Is there support for custom datatypes?
 		A: Yes, by subclassing Field() you can implement custom datatypes. Each field has a `typeref` parameter which determines the datatype used to serialize
 			the data in the database. Which data conversion and validation mechanisms you implement on top of that is up to you.
+
+	-	Q: Is there support for transactions?
+		A: Use `DatabaseEngine.transaction()` to obtain a Transaction object. This object acts as a context manager. Use it as follows:
+
+				with database.transaction() as t:
+					# ... perform some database operations ...
+				# transaction is implicitly closed and all changes are commited at once.
+
+			If an exception occurs within the transaction block, the transaction is rolled back automatically.
+
+	-	Q: Is there support for foreign key fields?
+		A: At the moment the ORM does not support foreign key relationships or table joins. These features are planned for a later release.
 
 ----------------------------------
 CLEAN UP
