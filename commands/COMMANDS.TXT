@@ -289,7 +289,9 @@ DATABASES AND DATA PERSISTENCE
 ----------------------------------
 
 With version 3.3, I introduced a new data persistency model using sqlite3: The DatabaseManager.
-The DatabaseManager, DatabaseHandle and Dataset classes are implemented in the config.py module, refer to the source for more in depth documentation.
+For the first time this enabled easy access to a context-sensitive, persistant, relational object storage system usable by command extensions.
+However, as time went on the shortcomings of this first design became apparent. Thus, when version 8 came around, I decided to throw in a new
+database system with the rest of the refactors.
 
 First question you SHOULD have is "why should I use this instead of the configManager to store information?" Good question. Here's why:
 
@@ -306,59 +308,127 @@ First question you SHOULD have is "why should I use this instead of the configMa
 	 possible data corruption during saving. With the DatabaseManager, users can rely on sqlite3 to deal with these issues and just store and retrieve data like they
 	 expect to.
 
-Now, while this all sounds great and well, there are some limitations with this system:
-
-	-There currently is (contrary to inline documentation) no way of accessing multiple Datasets from a query at once and perform operations on them. I have plans to introduce
-	 a separate Query class that is returned by select calls INSTEAD of a Dataset, exposing direct access to the underlying Datasets and convenience functionality, but
-	 currently the only way to select more than one entry is by using explicit row IDs.
-
-	-This implementation has NOT been checked for reliable protection against SQL injections. While there are certain security precautions in place, you have full
-	 responsibility of ensuring that no malicious data can be entered through your user interface. Accidentally executing arbitrary SQL statements or modifying
-	 system tables may lead to limited functionality or complete system failure.
-
 With all of this mess out of the way, here is how you access the database using the Command System API:
 
-The DatabaseManager is responsible for creating and caching database instances and provides access to their respective DatabaseHandles. It can be accessed through the environmental attribute db.
-To get the DatabaseHandle for a specific server, you have to call DatabaseManager.getServer(id), where id is the server ID. This call will return a DatabaseHandle instance.
+The new database system introduced with version 8 is an Object Relational Model (or ORM for short). This means that the underlying relational database layout is wrapped
+in an object oriented packaging, using Model classes instead of tables to interact with the data. Instead of writing query statements manually you construct them
+programatically by chaining filters together that alter the data returned when the query is executed. Finally, you can read and write data on the model instances like
+you would expect from an object oriented framework. Meanwhile the complexity of dealing with server specific databases, tables and even different database engines and
+SQL dialects is entirely abstracted away by the framework. All you have to do is write your models and interfacing code.
 
-	database = self.db.getServer(self.msg.server.id) #this would get the database corresponding to the server the command was executed in.
+Now for a quick introduction:
 
-You may have noticed at this point that by specifying a fake server ID it would be possible to create arbitrarily named databases, and in fact, if you wanted to use such a database to store information server independent, you can, and absolutely should, use the "global" database. While the name obviously doesn't actually matter, it makes organizing information a lot easier if you keep to this convention. You obviously should store your command configuration using the configManager instead!
+In order to create a new model, simply create a subclass of database.Model and define some fields:
 
-If you happen to receive a new database, it may be empty! This is why you should make sure any tables you may try to access actually exist before doing anything else:
+	from database import Model, TextField, IntegerField, PKConstraint, AIConstraint
 
-	database.createTableIfNotExists("myTable", entries={"aString": "text"}, autocommit=True)
+	class Car(Model):
 
-This will create a new table named "myTable" in the database that has the column "aString" of type text. The autocommit argument specifies if the generated SQL statement should be executed immediately or commited later. This can be useful if many statements need to be executed after each other, but can be omitted in most cases since it defaults to True.
-FOR SECURITY REASONS ONE SHOULD AVOID USING USER INPUT AS PART OF THE TABLE NAME AS IT MAY OPEN UP YOUR COMMAND/APPLICATION TO SQL INJECTION VULNERABILITIES!!!
+		car_model = TextField()
+		horsepower = IntegerField()
+		serial_number = IntegerField(constraints=[PKConstraint(), AIConstraint()])
 
-There are some tables that are created inside any new database automatically. These special tables usually have some connection to internal mechanics. DO NOT TRY TO ALTER OR DELETE THESE TABLES OR THEIR DATA, UNLESS YOU KNOW WHAT YOU ARE DOING. You might break the bot otherwise.
-Automatically created tables include:
+And that's it! As usual, we will go over all the elements one by one.
 
-	blockedChannels - stores information about channels the AI is not allowed to read from or write to.
-	blockedUsers - lists users that have been blocked from using any bot commands.
-	pinChannels - lists channels that are used to store pinned messages.
-	tasks - stores information about tasks. Currently not being used.
+	- First, we create a subclass of Model. The name of the class will be used as the name for the table by default. Normally, you should not have to care about this.
+	- Second, we define some fields. Fields are the ORM equivalent of database columns. Each field has a name and a type - and a number of optional constraints.
+		Once again, the ORM will use the name of your field class attribute as the name for the column. The actual datatype used depends on the database engine.
+		Some datatypes expect you to provide additional parameters, refer to the inline documentation of those fields in this case.
+	- serial_number defines some additional constraints. In particular, we are looking at a PKConstraint and AIConstraint instance. These correspond to the
+		PRIMARY KEY and AUTO INCREMENT parameters and tell the database engine that we want to explicitly declare our own primary key. If you would like to declare
+		a composite primary key you may do so by applying the PKConstraint to multiple columns. Note that the ORM handles certain constraints automatically for you.
+		For example, each field is not nullable by default. In order to enable null values, pass `null=True` as an argument to the fields constructor.
+		Also note that not all constraints are supported by all database engines.
+	- Something you cannot see in this example is the ORM's implicit primary key feature. To ensure functionality on backends which do not offer implicit keying on
+		their own, the ORM will automatically create an integer primary key and link it to your model in case you do not specify an explicit primary key yourself.
+		This field is called `id` by default. If you want a custom primary key you should declare it as such.
 
-With our new DatabaseHandle we have direct access to the database. While the DatabaseHandle provides very thin wrapper methods around a sqlite3 Cursor object, there is another, more object oriented way of accessing data in the database. This is done through Datasets.
-To create a new Dataset you do the following:
+Now that we have our model we need to tell the database system to create a table for it. There are two ways to do this. You may either:
 
-	dataset = database.createDataset("myTable")
+	a) call DatabaseManager.register_model(model_class) OR
+	b) call DatabaseEngine.register(model_class) directly.
 
-This call will create a new Dataset in the table "myTable" and return its corresponding Dataset instance. This does, however, not write the new Dataset to the database immediately. Thus, after this call, the returned Dataset is NOT ACTUALLY IN THE DATABASE!!!
-If it is required to query for a certain dataset that may already exist, one can use DatabaseHandle.createDatasetIfNotExists():
+What's the difference? To understand this, we need to understand the purpose of the DatabaseManager and DatabaseEngine classes.
+The engine is responsible for communicating with the database. As such, it represents exactly ONE database connection. The manager meanwhile handles all communication
+between the application and the database layer. It creates and caches database connections on the fly whenever such a connection is requested.
+Which method you want to use depends on the situation. DatabaseManager.register_model() will register your model on EVERY DATABASE requested from this point forward.
+In many cases this is not what you want. It may be a better idea to call DatabaseEngine.register() instead, since this will only affect the currently active database.
+However, if you choose this method, you will have to make sure to call it EVERY TIME you want to access the database with this model. In general, calling
+DatabaseManager.register_model() is safe if you are relying on the ORM's guild multiplexing features. If you are using the global or any other custom database, using
+DatabaseEngine.register() may be the better choice.
 
-	dataset = database.createDatasetIfNotExists("myTable", {"aString": "Hi There"})
+Now that we have created our model on the database, we can use the ORM to execute queries against this model.
+To access the database, you must first tell the DatabaseManager which database you are interested in. The database manager usually lives in environment.database, a name
+automatically imported by `from cmdsys import *`. In most cases, you want the database that corresponds to the current message context, i.e. the guild the command was
+sent in. Because this is such a common operation, it has its own method: `environment.database.get_db_by_message(msg)`.
+If you want a different database instead, you can use `environment.database.get_db(id)` instead.
+Regardless which method you choose, you will end up with a DatabaseEngine instance. This is your main entrypoint to the database system.
 
-This call will return the first Dataset that matches the requirements (aka, has the string "Hi There" set in column "aString"). The type and name of the columns depends on the table you query for the dataset. If no matching Dataset is found, a new one will be created. To check if the returned Dataset was found in the database, one can call the Dataset.exists() method.
+First, let's look into how we can construct a new instance of our model. While you may be inclined to simply call the models constructor directly (and this is most
+certainly possible), this is not the intended way of going about it. Instead, call DatabaseEngine.new(model_class). This will create and return a new instance of your
+model, as well as execute any pre-creation hooks the engine has attached to this method.
 
-Using the Dataset, parts of the corresponding database row can be modified and values can be retrieved. The database IS NOT ALTERED DURING ANY OF THIS. To commit any changes you made, call Dataset.update(). This call will automatically update the row if the Dataset already exists in the database or insert it otherwise. It should be noted that instead of using the provided convenience methods, one can also call many of them on DatabaseHandle instead, using the Dataset as an argument.
+The returned object will be an unbound model instance. This means you cannot perform certain operations on it (such as deleting it, which doesn't make sense on a
+model which doesn't exist yet). You can however begin to set the models fields. To do this, simply assign values to the instance attributes. They will be automatically
+cached in the background. No database operations are performed at all until you call Model.save(). This will instruct the DatabaseEngine() to create a record of your
+model in the database. Prior to the actual database operation a number of validators will be run on your model to ensure the values you entered are valid and within
+acceptable ranges. Some field types will also apply code injection protection at this state. Once the operation completes, your models data will be bound - meaning it
+represents a live record on the database. You may now delete it with Model.delete() or apply further changes and update it by calling save() again.
 
-All SQL statements are logged during execution, so check the logfiles if anything weird is going on.
+To query the database for a list of models, you can call DatabaseEngine.query(model_class). This will return a Query() object linked to the DatabaseEngine as well as
+your model class. The Query() class is a container implementing several accessor methods to enable you to perform operations on the records it contains. Note that the
+moment you use any of these interfaces for the first time, the Query is implicitly executed. A query string is constructed in the background and run on the database table,
+then the result is returned, converted back into model instances and exposed through the query instance. Since this is a bit more complicated than creating new instances,
+I will provide a short example.
 
-Neither DatabaseHandle nor DatabaseManager expose a clean up method to close open databases. This is intended and one should NEVER attempt to explicitly close a database connection. To ensure efficient data access and support a heavily asynchroneous program the DatabaseManager caches connected databases automatically. In case of system failure, any connections are implicitly closed and any uncommitted changes will be dropped. To ensure data consistency, it is sufficient to commit all changes made to the database before your command/application shuts down.
+Let's assume we have registered our Car model on the database. Now we want to search for any cars that match the serial number 1234.
 
-The DatabaseManager and all related systems are NOT THREAD SAFE. You should thus avoid interacting with the database outside of the main thread. If you absolutely need to, consider setting up a server using asyncios integrated features to handle database access for your application.
+	for car in database.query(Car).filter(serial_number=1234):
+		print(car.car_model, car.horsepower)
+
+Wait, what just happened?
+
+	- We first construct a query with `database.query(model_class)`. The query object doesn't actually appear anywhere in the statement though - it is implicitly converted
+		to an iterator which we immediately use in a for loop to iterate over the model instances returned.
+	- The `Query.filter()` call tells our Query instance that we want to restrict the query to only those instances that have a serial_number of 1234. The filter() method
+		can accept any Filter() instance as long as it is supported by the database engine. In this example we used the Equals() filter, however, because its use is so
+		common there is a shorthand for it - simply specify the attribute value as a keyword argument. A call to filter() always returns the Query instance. This allows you
+		to chain multiple filters together effortlessly. Using this syntax, any database query can be written as a single line of code!
+
+And that is pretty much it! There is one more thing I would like to mention however.
+When you want to delete a large amount of records, it is easy to just construct a query, then iterate over it, deleting every record by itself.
+This has several performance implications. For one, each model instance is implicitly created by the database engine on query execution, which costs time and memory.
+Secondly, a seperate query has to be created and executed for each deleted record. This is very time consuming due to the overhead between Python and the database backend.
+Most database backends support deleting multiple records at the same time. To facilitate this, a Query instance offers a delete() method, similarly to `Model.delete()`.
+This will delete ALL records that match the queries filter spec. The best part about it is that in most situations the records in question do not even have to be accessed.
+If your chosen database engine adapter does not support bulk deletion this is no problem either. Query will automatically fall back on the iterative deletion algorithm
+described in the beginning in these cases. Thus you should always use `Query.delete()` when deleting multiple records at once.
+
+~~~~~~~
+FAQ
+~~~~~~~
+
+	-	Q: Where are the logfiles?
+		A: All SQL statements are logged during execution, so check the logfiles if anything weird is going on.
+
+	-	Q: I want to close the database connection. How do I do this correctly?
+		A: Neither DatabaseHandle nor DatabaseManager expose a clean up method to close open databases.
+			This is intended and one should NEVER attempt to explicitly close a database connection.
+			To ensure efficient data access and support a heavily asynchroneous program the DatabaseManager caches connected databases automatically.
+			In case of system failure, any connections are implicitly closed and any uncommitted changes will be dropped.
+			To ensure data consistency, it is sufficient to commit all changes made to the database before your command/application shuts down.
+
+	-	Q: Are database connections thread safe?
+		A: The DatabaseManager and all related systems are NOT THREAD SAFE. You should thus avoid interacting with the database outside of the main thread.
+			If you absolutely need to, consider setting up a server using asyncios integrated features to handle database access for your application.
+
+	-	Q: I would like to use a different database engine than SQLite3. Is this possible?
+		A: Absolutely! However, currently only SQLite3 is supported out of the box. You can however write your own database adapter by subclassing DatabaseEngine.
+			You then need to pass this class to the DatabaseManager cosntructor. This happens in the constructor of the bot client itself.
+
+	-	Q: Is there support for custom datatypes?
+		A: Yes, by subclassing Field() you can implement custom datatypes. Each field has a `typeref` parameter which determines the datatype used to serialize
+			the data in the database. Which data conversion and validation mechanisms you implement on top of that is up to you.
 
 ----------------------------------
 CLEAN UP
