@@ -3,6 +3,7 @@ import asyncio
 import discord
 
 from ._globals import environment
+from core_models import AuditLogChannel
 
 class Argument():
 
@@ -104,10 +105,8 @@ class Command():
         Helper method for logging to audit logs.
         """
 
-        db = environment.database.getServer(self.msg.guild.id)
-        dsList = db.enumerateDatasets("auditLogChannels")
-        for i in dsList:
-            dch = await environment.client.fetch_channel(i.getValue("channelID"))
+        for i in environment.database.get_db_by_message(self.msg).query(AuditLogChannel):
+            dch = await environment.client.fetch_channel(i.channel_id)
             await dch.send(msg)
 
     async def flush(self):

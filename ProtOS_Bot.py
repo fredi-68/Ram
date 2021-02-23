@@ -203,9 +203,7 @@ class ProtosBot(Client):
 
                 if msg.guild:
                     #Check if this channel is blocked for AI
-                    db = self.db.getServer(msg.guild.id)
-                    ds = db.createDatasetIfNotExists("blockedChannels", {"channelID": msg.channel.id})
-                    if ds.exists(): #YOU'RE BANNED
+                    if len(self.db.get_db_by_message(msg).query(BlockedChannel).filter(channel_id=msg.channel.id)) > 0: #YOU'RE BANNED
                         await msg.channel.send(msg.author.mention + ", " + interaction.confused.getRandom())
                         return
 
@@ -232,9 +230,7 @@ class ProtosBot(Client):
 
                 if msg.guild:
                     #Check if this channel is blocked for AI
-                    db = self.db.getServer(msg.guild.id)
-                    ds = db.createDatasetIfNotExists("blockedChannels", {"channelID": msg.channel.id})
-                    if ds.exists(): #YOU'RE BANNED
+                    if len(self.db.get_db_by_message(msg).query(BlockedChannel).filter(channel_id=msg.channel.id)) > 0: #YOU'RE BANNED
                         return
 
                 await self.cs.observe(msg)
