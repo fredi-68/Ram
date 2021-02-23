@@ -70,17 +70,20 @@ Clearly the most interesting part of this whole thing since if you do this wrong
 To write a module that contains a command you will need access to at least the `cmdsys.Command` class.
 The easiest way to accomplish this is by calling
 
-
-    from cmdsys import *
+```python
+from cmdsys import *
+```
 
 
 at the start of your module. This will also import all other classes and functions you will need later.
 
 A command is defined by subclassing the Command class:
 
-	class MyCommand(Command):
+```python
+class MyCommand(Command):
 
-		pass
+    pass
+```
 
 And we're done! You could put this file into the commands folder and the program would import your command and add it to the list.
 The name of the class has no further significance. You can even put multiple commands in the same file.
@@ -92,13 +95,15 @@ This is because we haven't actually configured our command yet.
 
 To do this, we override the method Command.setup:
 
-	class MyCommand(Command):
+```python
+class MyCommand(Command):
 
-		def setup(self):
+    def setup(self):
 
-			self.name = "coolCommand"
-			self.aliases.append("coolCmd")
-			self.desc = "A cool command."
+        self.name = "coolCommand"
+        self.aliases.append("coolCmd")
+        self.desc = "A cool command."
+```
 
 As you can see, we have supplied the command system with some additional information about our command. Let's walk you through the different attributes showcased here:
 
@@ -124,17 +129,19 @@ Now we've made a command that we can even call from the chat using our own comma
 
 Add the following method to your class to add some actual functionality:
 
-	class MyCommand(Command):
+```python
+class MyCommand(Command):
 
-		def setup(self):
+    def setup(self):
 
-			self.name = "coolCommand"
-			self.aliases.append("coolCmd")
-			self.desc = "A cool command."
+        self.name = "coolCommand"
+        self.aliases.append("coolCmd")
+        self.desc = "A cool command."
 
-		async def call(self):
+    async def call(self):
 
-			await self.respond("Hello World!")
+        await self.respond("Hello World!")
+```
 
 **HINT:** If you don't know what those *"async"* and *"await"* directives are about, you should read the asyncio documentation and the python tutorials on asynchroneous programming. Basic knowledge of this is required to write commands (or at least understand what you're doing).
 
@@ -174,17 +181,19 @@ For our purpose of creating a member list command, we need access to the server 
 
 So the code for our example command could look like this:
 
-	class MyCommand(Command):
+```python
+class MyCommand(Command):
 
-		def setup(self):
+    def setup(self):
 
-			self.name = "listUsers"
-			self.desc = "This command lists all users that are online on this server."
+        self.name = "listUsers"
+        self.desc = "This command lists all users that are online on this server."
 
-		async def call(self, **kwargs):
+    async def call(self, **kwargs):
 
-			for member in tuple(self.msg.server.members):
-				await self.respond(member.name)
+        for member in tuple(self.msg.server.members):
+            await self.respond(member.name)
+```
 
 It is worth noting that this would be an incredibly inefficient use of our I/O ressources. Every time the `Command.respond()` method is called, the message is sent to Discord via `Client.send_message()` **immediately, without buffering**. This means for a long list like this, you will be sending potentially hundreds of messages... and there is not doubt that Discord won't like that very much. A smarter idea would be to buffer our responses. Incidentally, the `respond()` method takes an additional optional parameter called flush_chat, which is True by default. By setting this to False, we can tell the ResponseManager to buffer our messages until we call `respond()` with `flush_chat=True`, or call `Command.flush()` respectively.
 The message buffering system is even smart enough to automatically handle character limits for you. If you try to send a message longer than 2000 characters, the ResponseManager will try to break that message up into smaller pieces, as long as it can find a place to do so. Breakpoints for messages include newlines and new messages.
@@ -193,25 +202,29 @@ The ResponseManager will automatically flush our message buffer if we forget to 
 So now we've discussed all major parts of our command system: Input, output and retrieving context information...
 Wait a second, we never actually discussed how to get customized input using arguments right? Let's get to that as well before I forget again...
 
-#### ARGUMENTS
+#### Arguments
 
 Arguments are a very powerfull tool of cmdsys, because they allow you to customize your user interaction in a number of ways. The most basic way to add an Argument would be to do something like this:
 
-	class MyCommand(Command):
+```python
+class MyCommand(Command):
 
-		def setup(self):
+    def setup(self):
 
-			self.name = "echo"
-			self.addArgument(StringArgument("message", True))
+        self.name = "echo"
+        self.addArgument(StringArgument("message", True))
+```
 
 And that is it! A possible call method could look like this:
 
-		async def call(self, message="", **kwargs):
+```python
+    async def call(self, message="", **kwargs):
 
-			if not message:
-				await self.respond("You didn't say anything :(")
-			else:
-				await self.respond(message)
+        if not message:
+            await self.respond("You didn't say anything :(")
+        else:
+            await self.respond(message)
+```
 
 This command would take a single optional argument (meaning that it can be ommitted) and prints the content of that argument into the chat. Let's take a closer look at the constructor call of Argument. The first argument is the Argument name. This name is shown to the user in the command usage and help context and this is also the name of the keyword argument you will receive in the call method containing the argument the user entered. 
 The second argument determines, if the Argument is optional or not. An optional Argument is NOT GUARANTEED to be included in the keyword argument list when call is... well.. called. This means your code has to account for this by, for example, specifying a default value for optional arguments or implement the necessary error handling. Take your pick.
@@ -279,13 +292,15 @@ Now for a quick introduction:
 
 In order to create a new model, simply create a subclass of `database.Model` and define some fields:
 
-	from database import Model, TextField, IntegerField, PKConstraint, AIConstraint
+```python
+from database import Model, TextField, IntegerField, PKConstraint, AIConstraint
 
-	class Car(Model):
+class Car(Model):
 
-		car_model = TextField()
-		horsepower = IntegerField()
-		serial_number = IntegerField(constraints=[PKConstraint(), AIConstraint()])
+    car_model = TextField()
+    horsepower = IntegerField()
+    serial_number = IntegerField(constraints=[PKConstraint(), AIConstraint()])
+```
 
 And that's it! As usual, we will go over all the elements one by one.
 
@@ -342,8 +357,10 @@ I will provide a short example.
 
 Let's assume we have registered our *Car* model on the database. Now we want to search for any cars that match the serial number 1234.
 
-	for car in database.query(Car).filter(serial_number=1234):
-		print(car.car_model, car.horsepower)
+```python
+for car in database.query(Car).filter(serial_number=1234):
+    print(car.car_model, car.horsepower)
+```
 
 Wait, what just happened?
 
@@ -392,9 +409,11 @@ described in the beginning in these cases. Thus you should always use `Query.del
 -	Q: Is there support for transactions?
 	A: Use `DatabaseEngine.transaction()` to obtain a `Transaction` object. This object acts as a context manager. Use it as follows:
 
-		with database.transaction() as t:
-			# ... perform some database operations ...
-		# transaction is implicitly closed and all changes are commited at once.
+    ```python
+    with database.transaction() as t:
+        # ... perform some database operations ...
+    # transaction is implicitly closed and all changes are commited at once.
+    ```
 
 	If an exception occurs within the transaction block, the transaction is rolled back automatically.
 
@@ -412,7 +431,9 @@ Implementing a clean up handler in a destructor doesn't always have the desired 
 
 Since I had a similar problem while implementing the timeout command, I decided to introduce a clean up method registration function. To register a coroutine to be executed at bot shutdown, call
 
-	cmdsys.cleanUpRegister(coro)
+```python
+cmdsys.cleanUpRegister(coro)
+```
 
 This will schedule coro to be run BEFORE the client terminates, guaranteeing that you will have full access to all features of the command system.
 You may specify additional positional or keyword arguments. The coroutine will be called with these arguments in order of input.
@@ -420,7 +441,7 @@ You may specify additional positional or keyword arguments. The coroutine will b
 All clean up methods will be executed FIFO. However, there is no guarantee that clean up methods registered by different commands will always be executed in the same order as well. **YOU SHOULD NOT RELY ON THIS**. If your clean up handler is state dependend, consider to store all relevant information inside your command instance.
 There is currently no guarantee that clean up handlers will be executed if the bot crashed. In fairness, the APIs may not be available in this scenario anyways.
 
-#### DYNAMIC IMAGE CREATION AND MANIPULATION
+#### Dynamic Image Creation And Manipulation
 
 Again, imagine the following scenario:
 
