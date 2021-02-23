@@ -13,6 +13,8 @@ from ._globals import SUPERUSERS
 from .errors import *
 from .utils import dialogReact
 
+from core_models import BlockedUser
+
 class CommandParser():
 
     HELP_COMMAND_ALIASES = ("help", "h", "?")
@@ -73,13 +75,6 @@ class CommandParser():
                             # insufficient permissions
                             raise PermissionDeniedException("You do not have sufficient permission to use this command.")
 
-                        if response_handle.getMessage().guild:
-                            db = client.db.getServer(response_handle.getMessage().guild.id)
-
-                            ds = db.createDatasetIfNotExists("blockedUsers", {"userID": response_handle.getMessage().author.id})
-                            if ds.exists(): #FOUND YOU
-                                raise PermissionDeniedException("You have been blocked from using bot commands. If you believe that this is an error please report this to the bot owner.")
-
                 else:
                     if not command.allowConsole:
                         raise PermissionDeniedException("This command is not available on console.")
@@ -139,6 +134,12 @@ class CommandParser():
             "error": client.config.getElementText("bot.icons.error"),
             "pin": client.config.getElementText("bot.icons.pin")
             }
+
+        if response_handle.getMessage().guild:
+            msg = response_handle.getMessage()
+            if len(client.db.get_db_by_message(msg).query(BlockedUser).filter(user_id=msg.author.id)) > 0: #FOUND YOU
+                raise PermissionDeniedException("You have been blocked from using bot commands. If you believe that this is an error please report this to the bot owner.")
+
 
         cmd_s = await response_handle.getCommand()
         if response_handle.is_chat():
