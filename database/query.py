@@ -73,15 +73,10 @@ class Query():
 
         """
         Shortcut method for deleting all entries matching this query.
-        Returns the number of elements deleted.
         """
-
-        #TODO: Do this with a DELETE FROM SELECT query instead to save performance.
+        
         self._ensure_executed()
-        for e in self._result:
-            e.delete()
-
-        return len(self._result)
+        self._engine.bulk_delete(self)
         
     def __iter__(self):
 

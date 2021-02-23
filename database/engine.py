@@ -82,6 +82,15 @@ class DatabaseEngine():
 
         pass
 
+    def _bulk_delete(self, query: Query):
+
+        """
+        Bulk delete all records described by query.
+        Implementing this method is OPTIONAL.
+        """
+
+        raise NotImplementedError()
+
     def _begin_transaction(self):
 
         """
@@ -222,6 +231,15 @@ class DatabaseEngine():
 
         return Transaction(self)
 
+    def bulk_delete(self, query: Query):
+
+        try:
+            self._execute(self._bulk_delete(query))
+        except NotImplementedError as e:
+            #fall back on simple delete
+            for m in query:
+                m.delete()
+
     def __del__(self):
 
         try:
@@ -352,7 +370,9 @@ class SQLiteEngine(DatabaseEngine):
         
         select_args = ' AND '.join(map(lambda x: x.construct(), filters))
 
-        return 'SELECT * FROM %s WHERE %s;' % (model_cls._table_name, select_args)
+        if select_args:
+            return 'SELECT * FROM %s WHERE %s;' % (model_cls._table_name, select_args)
+        return 'SELECT * FROM %s;' % model_cls._table_name
 
     def _begin_transaction(self):
         

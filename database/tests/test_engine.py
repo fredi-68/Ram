@@ -33,4 +33,3 @@ class TestEngine(TestCase):
         with self.engine.transaction() as t:
             m = self.engine.new(self._Model)
             m.save()
-        

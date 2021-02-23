@@ -71,3 +71,22 @@ class TestModel(TestCase):
         self.assertTrue(m._bound)
         m.test_string = "Hello World"
         m.save()
+
+    def test_bulk_delete(self):
+
+        self.engine.register(self._Model)
+        m = self.engine.new(self._Model)
+        m.test_int = 1
+        m.save()
+        m = self.engine.new(self._Model)
+        m.test_int = 2
+        m.save()
+        m = self.engine.new(self._Model)
+        m.test_int = 2
+        m.save()
+
+        self.assertEqual(len(self.engine.query(self._Model)), 3)
+
+        self.engine.query(self._Model).filter(test_int=2).delete()
+
+        self.assertEqual(len(self.engine.query(self._Model)), 1)
