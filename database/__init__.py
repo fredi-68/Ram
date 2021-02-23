@@ -6,3 +6,4 @@ from .query import Query
 from .enums import OnConflict, OnDelete
 from .errors import *
 from .constraints import UniqueConstraint, PKConstraint, AIConstraint
+from .manager import DatabaseManager
