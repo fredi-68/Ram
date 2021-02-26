@@ -6,7 +6,7 @@ WHITELISTED_ROLE_IDS = [
     383998414225932288
     ]
 
-class MyCommand(Command):
+class AddRole(Command):
 
     def setup(self):
         

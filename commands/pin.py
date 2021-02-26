@@ -2,6 +2,8 @@ import discord
 import chatutils
 from cmdsys import *
 
+from core_models import PinReactionSettings, PinChannel
+
 class CmdPin(Command):
 
     #Subcommands
@@ -20,9 +22,12 @@ class CmdPin(Command):
 
             async def call(self, count, emote="", needs_mod=False):
 
-                db = self.db.getServer(self.msg.guild.id) #get the server database
-                ds = db.createDatasetIfNotExists("pinReactionSettings", {"count": count, "emote": emote, "needs_mod": needs_mod})
-                ds.update()
+                db = self.db.get_db(self.msg.guild.id) #get the server database
+                m = db.new(PinReactionSettings)
+                m.count = count
+                m.emote = emote
+                m.needs_mod = needs_mod
+                m.save()
 
                 await self.respond("Enabled reaction based pinning.")
 
@@ -40,10 +45,8 @@ class CmdPin(Command):
                 await self.respond("action must be either 'enable' or 'disable'.", True)
                 return
 
-            db = self.db.getServer(self.msg.guild.id) #get the server database
-            dsList = db.enumerateDatasets("pinReactionSettings")
-            for i in dsList:
-                i.delete()
+            db = self.db.get_db(self.msg.guild.id) #get the server database
+            db.query(PinReactionSettings).delete()
 
             await self.respond("Disabled reaction based pinning.")
 
@@ -72,10 +75,10 @@ class CmdPin(Command):
 
     async def call(self, message, **kwargs):
 
-        db = self.db.getDatabaseByMessage(self.msg)
-        dsList = db.enumerateDatasets("pinChannels")
+        db = self.db.get_db_by_message(self.msg)
+        q = db.query(PinChannel)
 
-        if len(dsList) < 1: #we don't have any pin channels for this server
+        if len(q) < 1: #we don't have any pin channels for this server
             await self.respond("Pins are not setup for this server.", True)
             return
 
@@ -101,6 +104,6 @@ class CmdPin(Command):
         if image:
             e.set_image(url=image)
 
-        for i in dsList:
-            dch = self.msg.guild.get_channel(i.getValue("channelID"))
+        for i in q:
+            dch = self.msg.guild.get_channel(i.channel_id)
             await dch.send(embed=e)

@@ -10,6 +10,12 @@ from ics import Calendar
 
 from cmdsys import *
 
+from database import Model, IntegerField, PKConstraint, AIConstraint
+
+class VtuberChannel(Model):
+
+    channel_id = IntegerField(constraints=[PKConstraint(), AIConstraint()])
+
 class VTube(Command):
 
     """
@@ -60,6 +66,8 @@ class VTube(Command):
         self._schedule = None
         self._task_runner_handle = self.loop.create_task(self._task_runner())
         cleanUpRegister(self._cleanup)
+
+        environment.database.register_model(VtuberChannel)
 
     async def _task_runner(self):
 
@@ -134,12 +142,12 @@ class VTube(Command):
             self.logger.info("Event notification triggered for event %s" % repr(event))
         else:
             self.logger.info("Event %s reevaluation triggered" % repr(event))
-        db = self.client.db.getServer("global")
-        db.createTableIfNotExists("vtuber_notification_channels", {"channel_id": "int"})
+        db = self.client.db.get_db("global")
+        
         info = await self._get_info(event)
-        for ds in db.enumerateDatasets("vtuber_notification_channels"):
+        for ds in db.query(VtuberChannel):
             try:
-                ch = await self.client.fetch_channel(ds.getValue("channel_id"))
+                ch = await self.client.fetch_channel(ds.channel_id)
                 mention_role = None
                 for role in ch.guild.roles:
                     if role.name == "vtub":
@@ -214,24 +222,22 @@ class VTube(Command):
         if not action in ("add", "remove", "next"):
             await self.respond("Action must be either 'add', 'remove' or 'next'.", True)
 
-        db = self.db.getServer("global")
-        db.createTableIfNotExists("vtuber_notification_channels", {"channel_id": "int"})
+        db = self.db.get_db("global")
 
         if action == "add":
             if channel is None:
                 await self.respond("Must specify channel ID.", True)
                 return
-            ds = db.createDatasetIfNotExists("vtuber_notification_channels", {"channel_id": channel.id})
-            ds.update()
+            m = db.new(VtuberChannel)
+            m.channel_id = channel.id
+            m.save()
             await self.respond("Successfully added channel %s." % channel.name)
 
         elif action == "remove":
             if channel is None:
                 await self.respond("Must specify channel ID.", True)
                 return
-            for ds in db.enumerateDatasets("vtuber_notification_channels"):
-                if ds.getValue("channel_id") == channel.id:
-                    ds.delete()
+            db.query(VtuberChannel).filter(channel_id=channel.id).delete()
             await self.respond("Successfully removed channel %s." % channel.name)
 
         elif action == "next":

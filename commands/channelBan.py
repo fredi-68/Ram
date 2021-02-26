@@ -1,7 +1,9 @@
 import discord
 from cmdsys import *
 
-class MyCommand(Command):
+from core_models import BlockedChannel
+
+class ChannelBan(Command):
 
     def setup(self):
 
@@ -26,24 +28,26 @@ class MyCommand(Command):
             await self.respond("Not a valid channel identifier.", True)
             return
 
-        db = self.db.getServer(channel.guild.id) #get the server database for this channel (may be a different server than the caller)
-        ds = db.createDatasetIfNotExists("blockedChannels", {"channelID": channel.id}) #fetch the dataset before action check, because we need it anyways
+        db = self.db.get_db(channel.guild.id) #get the server database for this channel (may be a different server than the caller)
+        q = db.query(BlockedChannel).filter(channel_id=channel.id)
+        m = db.new(BlockedChannel)
+        m.channel_id = channel.id
 
         if action == "ban":
-            if ds.exists():
+            if q:
                 await self.respond("This channel is already banned.", True)
                 return
 
-            ds.update()
+            m.save()
             await self.respond("Successfully banned channel "+channel.name)
             return
 
         elif action == "unban":
-            if not ds.exists():
+            if not q:
                 await self.respond("Cannot unban this channel since it isn't banned.", True)
                 return
 
-            ds.delete()
+            q.delete()
             await self.respond("Successfully unbanned channel "+channel.name)
             return
 

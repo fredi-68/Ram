@@ -1,6 +1,8 @@
 import discord
 from cmdsys import *
 
+from core_models import VoiceClientSettings
+
 class VoiceJoin(Command):
 
     def setup(self):
@@ -30,13 +32,12 @@ class VoiceJoin(Command):
             return
 
         #Load audio configuration for server
-        db = self.db.getServer(self.msg.guild.id)
-        db.createTableIfNotExists("voiceClientSettings", {"name": "text", "value": "text"})
-        ds = db.createDatasetIfNotExists("voiceClientSettings", {"name": "volume"})
-        if not ds.exists():
+        db = self.db.get_db(self.msg.guild.id)
+        q = db.query(VoiceClientSettings).filter(name="volume")
+        if not q:
             return
 
-        volume = ds.getValue("value")
+        volume = q[0].value
         if volume in (None, "None"): #Some dataset weirdness
             return
 

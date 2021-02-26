@@ -1,7 +1,9 @@
 import discord
 from cmdsys import *
 
-class MyCommand(Command):
+from core_models import PinChannel
+
+class ChannelsPin(Command):
 
     def setup(self):
 
@@ -26,24 +28,26 @@ class MyCommand(Command):
             await self.respond("Not a valid channel identifier.", True)
             return
 
-        db = self.db.getServer(channel.guild.id) #get the server database for this channel (may be a different server than the caller)
-        ds = db.createDatasetIfNotExists("pinChannels", {"channelID": channel.id}) #fetch the dataset before action check, because we need it anyways
+        db = self.db.get_db(channel.guild.id) #get the server database for this channel (may be a different server than the caller)
+        q = db.query(PinChannel).filter(channel_id=channel.id)
+        m = db.new(PinChannel)
+        m.channel_id = channel.id
 
         if action == "add":
-            if ds.exists():
+            if q:
                 await self.respond("This channel is already marked as pin channel.", True)
                 return
 
-            ds.update()
+            m.save()
             await self.respond("Successfully marked channel "+channel.name+" as pin channel.")
             return
 
         elif action == "remove":
-            if not ds.exists():
+            if not q:
                 await self.respond("Cannot remove this channel since it isn't a pin channel.", True)
                 return
 
-            ds.delete()
+            q.delete()
             await self.respond("Successfully removed pin channel "+channel.name)
             return
 

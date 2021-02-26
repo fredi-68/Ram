@@ -2,7 +2,9 @@ import discord
 from cmdsys import *
 from audio import AudioError
 
-class MyCommand(Command):
+from core_models import VoiceClientSettings
+
+class SetVolume(Command):
 
     def setup(self):
 
@@ -26,9 +28,13 @@ class MyCommand(Command):
             await self.respond("I'm currently not in a voice channel on this server.", True)
             return
 
-        db = self.db.getServer(server.id)
-        db.createTableIfNotExists("voiceClientSettings", {"name": "text", "value": "text"})
-        ds = db.createDatasetIfNotExists("voiceClientSettings", {"name": "volume"})
+        db = self.db.get_db(server.id)
+        q = db.query(VoiceClientSettings).filter(name="volume")
+        if q:
+            m = q[0]
+        else:
+            m = db.new(VoiceClientSettings)
+            m.name = "volume"
 
         if volume != None:
             #Set volume
@@ -38,11 +44,11 @@ class MyCommand(Command):
                 await self.respond("Set playback volume to %.0f%%" % (volume * 100))
             except AudioError as e:
                 await self.respond("Unable to set volume on channel %s: %s" % (server.voice_client.channel.name, str(e)), True)
-            ds.setValue("value", str(volume))
-            ds.update()
+            m.value = str(volume)
+            m.save()
         else:
             #Get volume
-            v = ds.getValue("value")
+            v = m.value
             if v == "None":
                 v = 1.0
             else:

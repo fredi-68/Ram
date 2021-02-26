@@ -1,7 +1,9 @@
 import discord
 from cmdsys import *
 
-class MyCommand(Command):
+from core_models import AuditLogChannel
+
+class ChannelLogs(Command):
 
     def setup(self):
 
@@ -26,24 +28,26 @@ class MyCommand(Command):
             await self.respond("Not a valid channel identifier.", True)
             return
 
-        db = self.db.getServer(channel.guild.id) #get the server database for this channel (may be a different server than the caller)
-        ds = db.createDatasetIfNotExists("auditLogChannels", {"channelID": channel.id}) #fetch the dataset before action check, because we need it anyways
+        db = self.db.get_db(channel.guild.id) #get the server database for this channel (may be a different server than the caller)
+        q = db.query(AuditLogChannel).filter(channel_id=channel.id)
+        m = db.new(AuditLogChannel)
+        m.channel_id = channel.id
 
         if action == "add":
-            if ds.exists():
+            if q:
                 await self.respond("This channel is already marked as audit log channel.", True)
                 return
 
-            ds.update()
+            m.save()
             await self.respond("Successfully marked channel "+channel.name+" as audit log channel.")
             return
 
         elif action == "remove":
-            if not ds.exists():
+            if not q:
                 await self.respond("Cannot remove this channel since it isn't an audit log channel.", True)
                 return
 
-            ds.delete()
+            q.delete()
             await self.respond("Successfully removed audit log channel "+channel.name)
             return
 

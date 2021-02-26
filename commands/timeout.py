@@ -4,7 +4,9 @@ import asyncio
 import discord
 from cmdsys import *
 
-class MyCommand(Command):
+from core_models import TimeoutRole, TimeoutCount
+
+class TimeoutCmd(Command):
 
     def setup(self):
 
@@ -47,12 +49,17 @@ class MyCommand(Command):
             self.client.loop.create_task(self.removeRole(member, duration))
             await self.respond("Timed %s out for %i minute(s)." % (member.name, duration))
 
-            db = self.db.getServer(self.msg.guild.id)
-            ds = db.createDatasetIfNotExists("timeoutCount", {"userID":member.id})
-            ds.setValue("count", ds.getValue("count") + 1)
-            ds.update()
+            db = self.db.get_db(self.msg.guild.id)
+            q = db.query(TimeoutCount).filter(user_id=member.id)
+            if q:
+                m = q[0]
+                m.count += 1
+            else:
+                m = db.new(TimeoutCount)
+                m.count = 1
+            m.save()
 
-            await self.log("User %s timed %s out for %i minutes in channel %s. This user has accumulated %i timeouts." % (self.msg.author.name, member.name, duration, self.msg.channel.name, ds.getValue("count")))
+            await self.log("User %s timed %s out for %i minutes in channel %s. This user has accumulated %i timeouts." % (self.msg.author.name, member.name, duration, self.msg.channel.name, m.count))
 
         except BaseException as e:
             await self.respond("An error occured while attempting to time out %s: %s" % (member.name, str(e)), True)
@@ -62,18 +69,18 @@ class MyCommand(Command):
         await asyncio.sleep(duration * 60) #wait until the timeout is over
         try:
             await member.remove_roles(await self.getRole())
-            logger.info("Timeout for %s expired." % member.name)
+            self.logger.info("Timeout for %s expired." % member.name)
         except:
-            logger.error("Unable to remove timeout for %s." % member.name)
+            self.logger.error("Unable to remove timeout for %s." % member.name)
 
     async def getRole(self):
 
-        db = self.db.getServer(self.msg.guild.id)
-        dsList = db.enumerateDatasets("timeoutRole")
-        if len(dsList) < 1:
+        db = self.db.get_db(self.msg.guild.id)
+        q = db.query(TimeoutRole)
+        if len(q) < 1:
             return None
 
-        name = dsList[0].getValue("roleID")
+        name = q[0].role_id
 
         for role in self.msg.guild.roles:
             if role.id == name:

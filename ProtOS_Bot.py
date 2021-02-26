@@ -64,6 +64,7 @@ class ProtosBot(Client):
         self.db.register_model(TimeoutRole)
         self.db.register_model(TimeoutCount)
         self.db.register_model(PinReactionSettings)
+        self.db.register_model(VoiceClientSettings)
 
         self.audio = AudioManager(self)
         self.cs = cs(self, self.config)

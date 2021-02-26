@@ -23,7 +23,7 @@ ANSWERS = [
     "Are you sure you want to know?"
     ]
 
-class MyCommand(Command):
+class Eightball(Command):
 
     def setup(self):
 

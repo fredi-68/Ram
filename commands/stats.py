@@ -35,7 +35,8 @@ class Stats(Command):
             "Shard: %i/%i    " % ((self.client.shard_id if self.client.shard_id else 0)+1, (self.client.shard_count if self.client.shard_count else 1)),
             "AI Backend: %s" % (self.client.cs.name),
             "Music Backend: %s" % ("youtube_dl" if has_ytdl else "Unavailable"),
-            "Image Processing Backend: %s" % ("imagelib" if has_imglib else "Unavailable")
+            "Image Processing Backend: %s" % ("imagelib" if has_imglib else "Unavailable"),
+            "Database Backend: %s" % environment.database._engine.__name__
             )
         e.add_field(name="General Information:", value="\n".join(generalInformation), inline=True)
 

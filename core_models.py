@@ -39,3 +39,8 @@ class PinReactionSettings(Model):
     count = IntegerField()
     emote = TextField()
     needs_mod = BooleanField()
+
+class VoiceClientSettings(Model):
+
+    name = TextField(constraints=[PKConstraint()])
+    value = TextField()

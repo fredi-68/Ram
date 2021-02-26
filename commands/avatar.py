@@ -3,7 +3,7 @@ import os
 import discord
 from cmdsys import *
 
-class MyCommand(Command):
+class ChangeAvatar(Command):
 
     def setup(self):
         

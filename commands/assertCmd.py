@@ -1,7 +1,7 @@
 import discord
 from cmdsys import *
 
-class MyCommand(Command):
+class AssertCmd(Command):
 
     def setup(self):
 
