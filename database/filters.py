@@ -10,12 +10,12 @@ class Filter():
 
 class Equals(Filter):
 
-    def __init__(self, field, name, value):
+    def __init__(self, name, value):
 
-        self.field = field
         self.name = name
         self.value = value
 
-    def construct(self):
+    def construct(self, model):
         
-        return '%s=%s' % (self.name, self.field._serialize(self.value))
+        field = model._fields[self.name]
+        return '%s=%s' % (self.name, field._serialize(self.value))

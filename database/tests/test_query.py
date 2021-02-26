@@ -40,6 +40,10 @@ class TestQUery(TestCase):
 
         self.engine.query(self._Model).filter(test_int=10).execute()
 
+    def test_query_filter_explicit(self):
+
+        self.engine.query(self._Model).filter(Equals("test_int", 10)).execute()
+
     def test_query_multiple_execute(self):
 
         q = self.engine.query(self._Model)
@@ -60,3 +64,22 @@ class TestQUery(TestCase):
         self.engine.new(self._Model).save()
         q = self.engine.query(self._Model)
         self.assertTrue(q)
+
+    def test_query_contains(self):
+
+        m = self.engine.new(self._Model)
+        q = self.engine.query(self._Model)
+        self.assertFalse(m in q)
+        m.save()
+        q = self.engine.query(self._Model)
+        self.assertTrue(m in q)
+
+    def test_query_index(self):
+
+        m = self.engine.new(self._Model)
+        q = self.engine.query(self._Model)
+        with self.assertRaises(IndexError):
+            q[0]
+        m.save()
+        q = self.engine.query(self._Model)
+        self.assertEqual(q[0], m)

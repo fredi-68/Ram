@@ -368,7 +368,7 @@ class SQLiteEngine(DatabaseEngine):
 
     def _query(self, model_cls, filters):
         
-        select_args = ' AND '.join(map(lambda x: x.construct(), filters))
+        select_args = ' AND '.join(map(lambda x: x.construct(model_cls), filters))
 
         if select_args:
             return 'SELECT * FROM %s WHERE %s;' % (model_cls._table_name, select_args)

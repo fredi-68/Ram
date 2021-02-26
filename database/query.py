@@ -66,7 +66,7 @@ class Query():
                 self._filters.append(_filter)
             else:
                 for field, value in kwargs.items():
-                    self._filters.append(Equals(self._model._fields[field], field, value))
+                    self._filters.append(Equals(field, value))
         return self
 
     def delete(self):
