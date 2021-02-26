@@ -100,3 +100,8 @@ class Query():
             if m == model:
                 return True
         return False
+
+    def __bool__(self):
+
+        self._ensure_executed()
+        return bool(self._result)
