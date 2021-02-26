@@ -41,6 +41,13 @@ class Model(metaclass=_ModelMeta):
 
     """
     Abstract base class for Object Relational Models.
+
+    This class is the core of the ORM. It uses meta-programming and
+    attribute access hooks to allow the user to interact with the
+    model fields through instance attributes directly.
+
+    For more information about setting up and using the ORM, refer
+    to commands/COMMANDS.md
     """
 
     def __init__(self):
