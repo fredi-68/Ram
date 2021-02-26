@@ -287,7 +287,7 @@ class SQLiteEngine(DatabaseEngine):
         
         parameters = args or kwargs
         self.logger.debug("Executing query '%s' with arguments '%s'." % (query, repr(parameters)))
-        self._c.execute(query, parameters)
+        self._c.execute(query+";", parameters)
 
     def _create_model(self, model_cls):
         
@@ -322,7 +322,7 @@ class SQLiteEngine(DatabaseEngine):
         #create query
 
         table_args = ", ".join([*field_specs, *table_constraints])
-        return 'CREATE TABLE IF NOT EXISTS "%s" (%s);' % (model_cls._table_name, table_args)
+        return 'CREATE TABLE IF NOT EXISTS "%s" (%s)' % (model_cls._table_name, table_args)
 
     def _insert(self, model):
         
@@ -336,15 +336,15 @@ class SQLiteEngine(DatabaseEngine):
             field_values.append(value)
 
         if not field_names:
-            return 'INSERT INTO %s DEFAULT VALUES;' % model._table_name
-        return 'INSERT INTO %s (%s) VALUES (%s);' % (model._table_name, ", ".join(field_names), ", ".join(field_values))
+            return 'INSERT INTO %s DEFAULT VALUES' % model._table_name
+        return 'INSERT INTO %s (%s) VALUES (%s)' % (model._table_name, ", ".join(field_names), ", ".join(field_values))
 
     def on_insert(self, model):
 
         # update the models values after insertion to retrieve generated values from the database
         # (for example defaults, expressions and auto increments).
 
-        self._execute('SELECT * FROM %s WHERE ROWID=:id;' % model._table_name, kwargs={"id": self._c.lastrowid})
+        self._execute('SELECT * FROM %s WHERE ROWID=:id' % model._table_name, kwargs={"id": self._c.lastrowid})
         for field, value in zip(model._fields.values(), self._c.fetchone()):
             field._set_field(value)
 
@@ -353,7 +353,7 @@ class SQLiteEngine(DatabaseEngine):
         update_args = []
         for name, field in model._fields.items():
             update_args.append("%s=%s" % (name, field._get_field()))
-        return 'UPDATE %s SET %s;' % (model._table_name, ", ".join(update_args))
+        return 'UPDATE %s SET %s' % (model._table_name, ", ".join(update_args))
 
     def _delete(self, model):
         
@@ -364,23 +364,23 @@ class SQLiteEngine(DatabaseEngine):
         delete_args = []
         for key, value in zip(model._pk, targets):
             delete_args.append("%s=%s" % (key, value))
-        return 'DELETE FROM %s WHERE %s;' % (model._table_name, ", ".join(delete_args))
+        return 'DELETE FROM %s WHERE %s' % (model._table_name, ", ".join(delete_args))
 
     def _query(self, model_cls, filters):
         
         select_args = ' AND '.join(map(lambda x: x.construct(model_cls), filters))
 
         if select_args:
-            return 'SELECT * FROM %s WHERE %s;' % (model_cls._table_name, select_args)
-        return 'SELECT * FROM %s;' % model_cls._table_name
+            return 'SELECT * FROM %s WHERE %s' % (model_cls._table_name, select_args)
+        return 'SELECT * FROM %s' % model_cls._table_name
 
     def _begin_transaction(self):
         
-        self._execute("BEGIN TRANSACTION;")
+        self._execute("BEGIN TRANSACTION")
 
     def _end_transaction(self, rollback=False):
         
         if rollback:
-            self._execute("ROLLBACK TRANSACTION;")
+            self._execute("ROLLBACK TRANSACTION")
         else:
-            self._execute("COMMIT TRANSACTION;")
+            self._execute("COMMIT TRANSACTION")
