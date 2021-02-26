@@ -1,5 +1,6 @@
 import shlex
 from typing import Sequence, Callable
+import json
 
 from .errors import *
 
@@ -100,7 +101,7 @@ class TextField(Field):
     def _validate(self, value):
 
         if not isinstance(value, str):
-            raise ValidationError("value must be a string.")
+            raise ValidationError("value must be a string, not %s" % value.__class__.__name__)
         super()._validate(value)
 
     def _serialize(self, value):
@@ -118,7 +119,7 @@ class IntegerField(Field):
     def _validate(self, value):
         
         if not isinstance(value, int):
-            raise ValidationError("value must be an integer.")
+            raise ValidationError("value must be an integer, not %s" % value.__class__.__name__)
         super()._validate(value)
 
     def _deserialize(self, value):
@@ -133,8 +134,8 @@ class FloatField(Field):
 
     def _validate(self, value):
 
-        if not isinstance(value, float):
-            raise ValidationError("value must be a float.")
+        if not (isinstance(value, float) or isinstance(value, int)):
+            raise ValidationError("value must be a float, not %s" % value.__class__.__name__)
         super()._validate(value)
 
     def _deserialize(self, value):
@@ -152,3 +153,25 @@ class BooleanField(Field):
 
     def _serialize(self, value):
         return "1" if value else "0"
+
+class JSONField(Field):
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__("TEXT", *args, **kwargs)
+
+    def _validate(self, value):
+
+        if not isinstance(value, dict):
+            if isinstance(value, list):
+                raise ValidationError("Cannot serialize list objects, only dict.")
+            raise ValidationError("value must be a dict, not %s" % value.__class__.__name__)
+        super()._validate(value)
+
+    def _serialize(self, value):
+
+        return shlex.quote(json.dumps(value))
+
+    def _deserialize(self, value):
+        
+        return json.loads(value)

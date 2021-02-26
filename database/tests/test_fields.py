@@ -3,7 +3,7 @@ from pathlib import Path
 
 from ..models import Model
 from ..engine import SQLiteEngine
-from ..fields import IntegerField, TextField, FloatField
+from ..fields import IntegerField, TextField, FloatField, JSONField
 
 DB_PATH = Path("test.db")
 
@@ -92,4 +92,33 @@ class TestFloat(TestCase):
         with self.assertRaises(Exception):
             m.save()
         m.float_base = 99.9999
+        m.save()
+
+class TestJSON(TestCase):
+
+    def setUp(self):
+
+        self.engine = SQLiteEngine()
+        self.engine.connect(DB_PATH)
+        return super().setUp()
+
+    def tearDown(self):
+
+        self.engine.disconnect()
+        DB_PATH.unlink()
+        return super().tearDown()
+
+    def test_json_init(self):
+
+        class M(Model):
+
+            dict_base = JSONField()
+            dict_default = JSONField(default={"some_key": "hi"})
+            dict_null = JSONField(null=True)
+
+        self.engine.register(M)
+        m = self.engine.new(M)
+        with self.assertRaises(Exception):
+            m.save()
+        m.dict_base = {"Hello World": 12345}
         m.save()

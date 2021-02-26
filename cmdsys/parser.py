@@ -88,7 +88,7 @@ class CommandParser():
                     else:
                         new_arguments = []
                     try:
-                        await self._parse_command(response_handle, client, new_command, new_arguments, command.subcommands)
+                        await self._parse_command(response_handle, new_command, new_arguments, command.subcommands, client)
                     except CommandNotFoundException:
                         self.logger.exception("")
                     else:
@@ -161,7 +161,7 @@ class CommandParser():
                 return await self.print_command_list(command_list, response_handle)
             if await self.get_help(args, command_list, response_handle):
                 return
-            await response_handle.reply("Unknown command '%s'" % cmd)
+            await response_handle.reply("Unknown command '%s'" % args[0])
             return
 
         try:

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+import sys
 
 import discord
 import arrow
@@ -81,7 +82,7 @@ class AutoPurgeJob(Model):
 
     channel_id = IntegerField()
     pattern = TextField()
-    last = FloatArgument(default=0)
+    last = FloatField(default=0)
 
 class Job():
 
@@ -114,31 +115,29 @@ class Job():
             raise MalformedPatternException("Must specify at least one condition.")
 
     @classmethod
-    async def from_dataset(cls, client: "ProtosBot", ds: "DatasetHandle") -> "Job":
+    async def from_dataset(cls, client: "ProtosBot", ds: "AutoPurgeJob") -> "Job":
 
         """
         Create a new job from a dataset.
         """
 
-        channel = await client.fetch_channel(ds.getValue("channel"))
+        channel = await client.fetch_channel(ds.channel_id)
 
-        return Job(client, channel, ds.getValue("pattern"), Arrow.fromtimestamp(ds.getValue("last")))
+        return Job(client, channel, ds.pattern, Arrow.fromtimestamp(ds.last))
 
-    def to_dataset(self, db: "DatabaseHandle") -> "DatasetHandle":
+    def to_dataset(self, db: "DatabaseEngine") -> "AutoPurgeJob":
 
         """
         Save this job to the database.
         """
 
-        channel = self.channel.id
-        pattern = json.dumps(self.pattern)
-        last = self.last.timestamp
+        m = db.new(AutoPurgeJob)
+        m.channel_id = self.channel.id
+        m.pattern = json.dumps(self.pattern)
+        m.last = self.last.timestamp
+        m.save()
 
-        ds = db.createDatasetIfNotExists(self.TABLE_NAME, {"channel": channel, "pattern": pattern})
-        ds.setValue("last", last)
-        ds.update()
-
-        return ds
+        return m
 
     def _parse_pattern(self, pattern: dict):
 
@@ -204,8 +203,7 @@ class AutoPurge(Command):
                 await self.respond("Could not create job: %s" % str(e), True)
                 return
 
-            db = self.db.getServer("global")
-            db.createTableIfNotExists(Job.TABLE_NAME, {"channel": "int", "pattern": "text", "last": "int"})
+            db = self.db.get_db("global")
             job.to_dataset(db)
             self.parent.create_job(job)            
 
@@ -222,8 +220,19 @@ class AutoPurge(Command):
         self.addArgument(Argument("action"))
         self.addSubcommand(self.AddJob(self))
 
-        self._dispatcher_task = self.loop.create_task(self._job_dispatcher())
         cleanUpRegister(self._cleanup)
+
+        environment.database.register_model(AutoPurgeJob)
+        db = environment.database.get_db("global")
+
+        self.loop.create_task(self._load_jobs(db))
+        self._dispatcher_task = self.loop.create_task(self._job_dispatcher())
+
+    async def _load_jobs(self, db):
+
+        await self.client.wait_for_connection()
+        for job_config in db.query(AutoPurgeJob):
+            self._jobs.add(await Job.from_dataset(self.client, job_config))
 
     async def _cleanup(self):
 
@@ -243,9 +252,20 @@ class AutoPurge(Command):
                             await self.log("Failed to execute job: %s" % str(e))
                             continue
                         if c > 0:
-                            await self.log("AutoPurge deleted %i message(s) from channel %s.", c, str(job.channel))
+                            await self.log("AutoPurge deleted %i message(s) from channel %s." % (c, str(job.channel)))
+                        db = environment.database.get_db("global")
+                        q = db.query(AutoPurgeJob).filter(channel_id=job.channel.id).filter(pattern=json.dumps(job.pattern))
+                        if not q:
+                            self.logger.warn("Job %s does not exist in the database." % str(job))
+                            job.to_dataset(db)
+                        else:
+                            for m in q:
+                                m.last = job.last.timestamp
+                                m.save()
                 except Exception as e:
-                    print(e)
+                    await self.log(str(e))
+                    
+                    sys.excepthook(*sys.exc_info())
 
             await asyncio.sleep(self.JOB_CHECK_INTERVAL)
 

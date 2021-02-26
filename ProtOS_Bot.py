@@ -50,6 +50,7 @@ class ProtosBot(Client):
         super().__init__()
 
         self._autosave_active = False
+        self._connected_futures = []
 
         self.event(self.on_message)
         self.event(self.on_ready)
@@ -122,6 +123,16 @@ class ProtosBot(Client):
         self.logger.debug("Starting...")
         super().run(self.token)
 
+    def wait_for_connection(self):
+
+        if self.is_ready():
+            f = asyncio.Future()
+            f.set_result(True)
+            return f
+        f = asyncio.Future()
+        self._connected_futures.append(f)
+        return f
+
     def log_message(self, msg: Message):
 
         """
@@ -172,6 +183,9 @@ class ProtosBot(Client):
 
         game = Game(name= "%s | %s%s" % (S_VERSION, self.config.getElementText("bot.prefix"), "about"))
         await self.change_presence(activity=game)
+
+        for f in self._connected_futures:
+            f.set_result(True)
 
     async def on_message(self, msg: Message):
 

@@ -1,6 +1,6 @@
 from .engine import SQLiteEngine
 from .models import Model
-from .fields import Field, TextField, IntegerField, FloatField, BooleanField
+from .fields import Field, TextField, IntegerField, FloatField, BooleanField, JSONField
 from .filters import Equals
 from .query import Query
 from .enums import OnConflict, OnDelete
