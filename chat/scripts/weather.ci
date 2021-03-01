@@ -1,0 +1,10 @@
+//**********************************
+//Weather report script.
+//**********************************
+
+set question -> [#"how", #"what"]
+set trigger -> (question, #"weather", #"is")
+
+set response -> "** %bot_name ** wants to: __*Know your location.*__"
+
+on trigger -> response

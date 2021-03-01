@@ -1,4 +1,4 @@
-#Discord ProtOS Bot
+#ProtOS Discord Bot
 #
 #Author: fredi_68
 #
@@ -102,7 +102,6 @@ class YouTubeSearch(Search):
         
         data = json.loads(res.read())
 
-        #We want to extract the video ID from the JSON data to pass it into youtube_dl later
         urls = {}
         for i in data["items"]:
             try:

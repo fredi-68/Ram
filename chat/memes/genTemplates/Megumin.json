@@ -1,0 +1,24 @@
+{
+  "name": "Megumin",
+  "source": "Megumin.png",
+  "lines": [
+    {
+      "x": 28,
+      "y": 11,
+      "width": 870,
+      "height": 158,
+      "color": [255, 255, 255],
+      "draw_shadow": 1,
+      "shadow_color": [0, 0, 0]
+    },
+    {
+      "x": 16,
+      "y": 544,
+      "width": 907,
+      "height": 169,
+      "color": [255, 255, 255],
+      "draw_shadow": 1,
+      "shadow_color": [0, 0, 0]
+    }
+  ]
+}

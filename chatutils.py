@@ -5,6 +5,7 @@
 #Chat convenience methods. These mainly deal with string analysis and formatting
 
 import re
+import shlex
 
 #REGULAR EXPRESSIONS
 
@@ -32,7 +33,7 @@ def getMention(msg):
     """
 
     result = re_user_mention.search(msg)
-    return result.group(1) if result else None
+    return int(result.group(1)) if result else None
 
 def getRoleMention(msg):
 
@@ -41,7 +42,7 @@ def getRoleMention(msg):
     """
 
     result = re_role_mention.search(msg)
-    return result.group(1) if result else None
+    return int(result.group(1)) if result else None
 
 def getChannelMention(msg):
 
@@ -50,7 +51,7 @@ def getChannelMention(msg):
     """
 
     result = re_channel_mention.search(msg)
-    return result.group(1) if result else None
+    return int(result.group(1)) if result else None
 
 def splitCommandString(cmd):
 
@@ -58,13 +59,15 @@ def splitCommandString(cmd):
     Split argument string and return commmand and arguments as a list of strings
     """
 
-    res = re_split_cmd.split(cmd)
-    words = []
-    for i in res:
-        if i:
-            words.append(i.strip('" '))
+    return shlex.split(cmd)
 
-    return words
+    # res = re_split_cmd.split(cmd)
+    # words = []
+    # for i in res:
+    #     if i:
+    #         words.append(i.strip('" '))
+
+    # return words
 
 def checkForWords(words, s, ignoreCase=True):
 

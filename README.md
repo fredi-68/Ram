@@ -1,6 +1,9 @@
 # Ram
 ProtOS Discord Bot (Codename: Ram)
 
+[![pipeline status](http://192.168.1.228/fredi_68/protos-discord-bot/badges/master/pipeline.svg)](http://192.168.1.228/fredi_68/protos-discord-bot/commits/master)
+[![coverage report](http://192.168.1.228/fredi_68/protos-discord-bot/badges/master/coverage.svg)](http://192.168.1.228/fredi_68/protos-discord-bot/commits/master)
+
 *Welp that deleted my old readme file, thanks a lot Git. Sheesh.*
 Seriously there has to be a better way to merge a local repo onto the master without fucking everything up, even if their histories
 don't match up. And there probably is. Remember to propose change to the Git devs to put a gigantic disclaimer text at the start of the
@@ -19,19 +22,25 @@ I like the GitHub interface so that's why this is on here. OMG VS, STOP PUTTING 
 Also testing some stuff since I have another project that may go open source at some point. So far I am disappointed.
 
 # Installation
-I have no idea, just go ahead and try. I use a different version of the program that has some additional modules and other files and never tested
-if the repo actually works on its own. If it boots for you, great. If it doesn't, open an issue and I'll see if I can get around to actually testing
-this crap.
-Oh yeah, you'll probably have to do something about the conversation simulator, because that will definitely make it crash. Yep.
+
+## Docker
+
+In my infinite wisdom I created a dockerfile for Ram. The image is automatically built after each CI run using Kaniko, but can also be built manually by running `docker build` in the root directory. For an example docker-compose configuration when actually running the image, check `docker-compose.yaml`.
+
+When running as an image, Ram accepts certain configuration from the environment rather than the configuration file. For example, you can pass the discord token by setting the environment variable `BOT_AUTH_TOKEN=<token>`. For a complete documentation of all available configuration variables, refer to the source code because I can literally not be bothered right now.
+
+## Everything Else
 
 Dependencies:
 
-	discord.py (duh; install the version with audio support, otherwise there may be issues. Refer to the discord.py repo for more information)
-	youtube_dl (probably optional; may be required because I fucked up somewhere)
-	soundcloud (optional; used for the music search engine)
-	pygame (optional; used mostly for meme purposes)
+ - discord.py (duh; install the version with audio support, otherwise there may be issues. Refer to the discord.py repo for more information)
+ - youtube_dl (probably optional; may be required because I fucked up somewhere)
+ - soundcloud (optional; used for the music search engine)
+ - pygame (optional; used mostly for meme purposes)
 
-All of the above modules can be installed using pip. I'm running my setup on Python 3.6 so you should probably do that as well.
+ - other audio related stuff (optional; used for experimental voice receive hooks, aka the voicecom package - which is recommended to be left disabled, and is so by default.)
+
+All of the above modules can be installed using pip. I'm running my setup on Python 3.6 so you should probably do that as well. Just do a `pip install -r requirements.txt` to save yourself some work.
 
 Some important stuff to keep in mind if you DO want to try this: The bot will look for an xml document located at config/bot.xml . This document
 should contain at least two things: Some sort of login information and your discord user ID, so that the bot can identify you in chat. The bot

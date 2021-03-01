@@ -1,0 +1,7 @@
+discord.py[voice]
+PyNaCl
+youtube-dl
+soundcloud
+pygame
+ics
+arrow

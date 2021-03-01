@@ -1,0 +1,31 @@
+.git
+__pycache__
+_temp
+bin
+_DEPRECATED
+chat
+config
+DeactivatedCmds
+logs
+sounds
+stuff
+tracks
+config
+ProtOS Bot.pyproj
+TODO.txt
+commit.BAT
+.gitignore
+.gitlab-ci.yml
+test_ffprobe.py
+docker-compose.yaml
+ffmpeg.exe
+ffprobe.exe
+NOINDEX.INF
+README.md
+START.BAT
+START2.BAT
+STARTAI.BAT
+START_DOCKER.BAT
+ProtOS Bot.pyproj
+commit.BAT
+train.py

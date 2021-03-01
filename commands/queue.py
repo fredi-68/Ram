@@ -10,15 +10,15 @@ class MyCommand(Command):
         self.aliases.append("showQueue")
         self.desc = "Show the audio queue for the specified channel."
         self.allowConsole = False
-        self.addArgument(Argument("channel", CMD_TYPE_CHANNEL, True))
+        self.addArgument(ChannelArgument("channel", True))
 
     async def call(self, channel=None, **kwargs):
 
         if not channel:
-            if not self.msg.author.voice_channel:
+            if not self.msg.author.voice.channel:
                 await self.respond("You are not in a voice channel. Please specify a channel for me to connect to.", True)
                 return
-            channel = self.msg.author.voice_channel
+            channel = self.msg.author.voice.channel
 
         try:
             playing = self.audioManager.getPlaying(channel)

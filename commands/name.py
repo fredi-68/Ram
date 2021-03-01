@@ -8,12 +8,8 @@ class MyCommand(Command):
         self.name = "name"
         self.desc = "Change the name of the bot."
         self.ownerOnly = True
-        self.addArgument(Argument("username",type=CmdTypes.STR))
-        self.addArgument(Argument("password",type=CmdTypes.STR,optional=True))
+        self.addArgument(StringArgument("username"))
 
-    async def call(self, username, password="", **kwargs):
+    async def call(self, username, **kwargs):
 
-        if password:
-            await self.client.edit_profile(username=username, password=password)
-        else:
-            await self.client.edit_profile(username=username)
+        await self.client.user.edit(username=username)

@@ -25,6 +25,27 @@
     <Compile Include="audio.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="commands\evalCmd.py" />
+    <Compile Include="commands\theList.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="responseManager.py" />
+    <Compile Include="voicecom\channel.py" />
+    <Compile Include="voicecom\constants.py" />
+    <Compile Include="voicecom\enums.py" />
+    <Compile Include="voicecom\listener.py" />
+    <Compile Include="voicecom\opus.py" />
+    <Compile Include="voicecom\rdp.py" />
+    <Compile Include="voicecom\sinks.py" />
+    <Compile Include="voicecom\speech.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="voicecom\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="brianCS\enums.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="brianCS\model.py">
       <SubType>Code</SubType>
     </Compile>
@@ -232,9 +253,6 @@
     <Compile Include="version.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="voicecom.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="ytsearch.py">
       <SubType>Code</SubType>
     </Compile>
@@ -256,6 +274,7 @@
     <Folder Include="RAT\logs\" />
     <Folder Include="RAT\Security\" />
     <Folder Include="RAT\Patch\" />
+    <Folder Include="voicecom\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="chat\memes\genTemplates\dio.png" />

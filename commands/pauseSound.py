@@ -9,7 +9,7 @@ class MyCommand(Command):
         self.name = "pause"
         self.aliases.append("unpause")
         self.desc = "Pauses/Unpauses the current sound. Works on all sounds."
-        self.addArgument(Argument("server", CmdTypes.SERVER, True))
+        self.addArgument(ServerArgument("server", True))
         self.permissions.move_members = True
 
     async def call(self, server=None, **kwargs):
@@ -18,7 +18,7 @@ class MyCommand(Command):
             if not self.msg:
                 await self.respond("You need to specify a server when pausing/unpausing from console.")
                 return
-            server = self.msg.server
+            server = self.msg.guild
 
         if not (hasattr(server, "voice_client") and server.voice_client):
             await self.respond("I'm currently not in a voice channel on this server.", True)

@@ -1,0 +1,24 @@
+{
+  "name": "Aids1",
+  "source": "aids1.png",
+  "lines": [
+    {
+      "x": 6,
+      "y": 1,
+      "width": 333,
+      "height": 87,
+      "color": [255, 255, 255],
+      "draw_shadow": 1,
+      "shadow_color": [0, 0, 0]
+    },
+    {
+      "x": 6,
+      "y": 350,
+      "width": 333,
+      "height": 74,
+      "color": [255, 255, 255],
+      "draw_shadow": 1,
+      "shadow_color": [0, 0, 0]
+    }
+  ]
+}

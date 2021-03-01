@@ -1,4 +1,4 @@
-﻿#Discord ProtOS Bot
+#Discord ProtOS Bot
 #
 #Author: fredi_68
 #
@@ -90,7 +90,7 @@ class lineStorage():
         except:
             return False
 
-        self.lines = f.readlines()
+        self.lines = list(map(lambda x: x.rstrip("\n"), f.readlines()))
         f.close()
 
     def getRandom(self):
@@ -116,7 +116,7 @@ class lineStorage():
         If the operation was successfull, the returned value will be the index of the newly created line."""
 
         try:
-            f = open(self.path,"w")
+            f = open(self.path, "w")
         except:
             return False
 
@@ -146,6 +146,9 @@ class QuoteManager():
 
         """Load all quote files from a directory."""
 
+        if path is not None:
+            self.path = path
+        os.makedirs(self.path, exist_ok=True) #ensure directory exists
         for i in os.listdir(self.path):
             name = i.rsplit(".",1)[0]
             self.files[name] = lineStorage(self.path+i,name)
@@ -383,7 +386,7 @@ class Namespace():
 
 class EventHandle():
 
-    def __init__():
+    def __init__(self):
 
         pass
 
@@ -496,10 +499,10 @@ class DSLParser():
         ("string", '".+?[^%]"'), #A string starts with " and ends with ", except if it is prepended with a % character
         ("actionSeparator", "->"),
         ("condSeparator", ", ?"),
-        ("condAndStart", "\("),
-        ("condAndEnd", "\)"),
-        ("condOrStart", "\["),
-        ("condOrEnd", "\]"),
+        ("condAndStart", "\\("),
+        ("condAndEnd", "\\)"),
+        ("condOrStart", "\\["),
+        ("condOrEnd", "\\]"),
         ("separator", " +"),
         ("inversion", "!"),
         ("substring", "#"),
@@ -522,7 +525,7 @@ class DSLParser():
         Parses the code and returns a sequence of tokens.
         """
 
-        tokens = []
+        #tokens = []
 
         self.logger.info("Parsing file...")
 
@@ -585,7 +588,7 @@ class DSLInterpreter():
             return
 
         try:
-            vc = message.server.voice_client
+            vc = message.guild.voice_client
             channel = vc.channel
         except AttributeError:
             return #This is easier than LBYL
@@ -825,7 +828,7 @@ class DSLInterpreter():
                         return True
 
                     else:
-                        raise DSLError("Wrong value for first action, must be 'play'")
+                        raise DSLError("Wrong value for first action, must be 'play' or 'react'.")
 
             elif len(action) > 2:
                 raise DSLError("Too many actions for command on: Expected at most 2 but was %i" % len(action))
@@ -865,7 +868,7 @@ class DSLInterpreter():
                     results.append(result)
 
         if results:
-            self.client.loop.create_task(self.client.send_message(message.channel, "%s, %s" % (message.author.mention, "\n".join(results))))
+            self.client.loop.create_task(message.channel.send("%s, %s" % (message.author.mention, "\n".join(results))))
             return True
 
         return False

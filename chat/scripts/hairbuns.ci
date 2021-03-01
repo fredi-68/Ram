@@ -1,0 +1,9 @@
+//**********************************
+//YuruCamp meme
+//**********************************
+
+set url -> "https://gfycat.com/SecondaryPleasedIchthyosaurs"
+
+set trigger -> (#"hair", [#"bun", #"buns"])
+
+on trigger -> url

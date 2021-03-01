@@ -18,14 +18,14 @@ class MyCommand(Command):
 
         NOTE: To use flags, specifying an explicit index is mandatory.
         """
-        self.addArgument(Argument("index", CmdTypes.INT, True))
-        self.addArgument(Argument("flags", CMD_TYPE_STR, True))
+        self.addArgument(IntArgument("index", True))
+        self.addArgument(StringArgument("flags", True))
         self.permissions.move_members = True
         self.allowConsole = False
 
     async def call(self, index=0, flags="", **kwargs):
 
-        server = self.msg.server
+        server = self.msg.guild
         force = False
 
         if not (hasattr(server, "voice_client") and server.voice_client):

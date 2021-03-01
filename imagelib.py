@@ -300,6 +300,42 @@ class Image(io.RawIOBase):
 
         return getPNGBuffer(self._surf)
 
+    def seek(self, n=0):
+
+        """
+        This is only here to stop discord.py from complaining.
+        This method doesn't actually do anything.
+        """
+
+        pass
+
+    def readable(self):
+
+        """
+        This is only here to stop discord.py from complaining.
+        This method doesn't actually do anything.
+        """
+
+        return True
+
+    def seekable(self):
+
+        """
+        This is only here to stop discord.py from complaining.
+        This method doesn't actually do anything.
+        """
+
+        return True
+
+    def tell(self):
+
+        """
+        This is only here to stop discord.py from complaining.
+        This method doesn't actually do anything.
+        """
+
+        return 0
+
     def read(self, n=0):
 
         """
@@ -366,6 +402,19 @@ class Image(io.RawIOBase):
 
                     line += " " + words.pop(0)
                     lineWidth += spaceWidth + sizes[0]
+
+                else:
+                    #an issue can occur here if a line consists of only one word.
+                    #in this case, the while loop never runs, but the first word is
+                    #still pulled from the queue. If it is too wide to fit the line,
+                    #the loop still exits due to the height of the line matching
+                    #the maximum height of the cell.
+                    #the solution is to check again for width limits if the loop terminates
+                    #without a break statement
+                    if lineWidth > box.width:
+                        totalHeight = box.height + 1 #make sure that the loop does not exit prematurely
+                        break
+                    
                 totalHeight += size
                 #totalHeight += font.size(line)[1]
 
@@ -412,7 +461,7 @@ class Image(io.RawIOBase):
 
             self._surf.blit(font.render(lines[i][0], 1, color), [area[0]+xoffset, area[1]+i*size])
 
-    def _extrude(self, surf, width=1):
+    def _extrude(self, surf, width=1, sides=15):
 
         """
         Extrude the objects in the surface by the specified width.
@@ -422,14 +471,24 @@ class Image(io.RawIOBase):
         This is particularly useful to draw drop shadows for objects such as
         text lines.
         The width argument specifies how many iterations are computed.
+        sides is a bitmask specifying which sides the drop shadow is rendered for.
+        The bits are read as follows:
+         1 << 0: up
+         1 << 1: down
+         1 << 2: left
+         1 << 3: right
         """
 
         for i in range(width):
 
-            surf.blit(surf, (0, 1), special_flags=pygame.BLEND_RGBA_MAX)
-            surf.blit(surf, (0, -1), special_flags=pygame.BLEND_RGBA_MAX)
-            surf.blit(surf, (1, 0), special_flags=pygame.BLEND_RGBA_MAX)
-            surf.blit(surf, (-1, 0), special_flags=pygame.BLEND_RGBA_MAX)
+            if sides & 2:
+                surf.blit(surf, (0, 1), special_flags=pygame.BLEND_RGBA_MAX)
+            if sides & 1:
+                surf.blit(surf, (0, -1), special_flags=pygame.BLEND_RGBA_MAX)
+            if sides & 8:
+                surf.blit(surf, (1, 0), special_flags=pygame.BLEND_RGBA_MAX)
+            if sides & 4:
+                surf.blit(surf, (-1, 0), special_flags=pygame.BLEND_RGBA_MAX)
 
         return surf
 

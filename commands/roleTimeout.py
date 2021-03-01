@@ -1,7 +1,9 @@
 import discord
 from cmdsys import *
 
-class MyCommand(Command):
+from core_models import TimeoutRole
+
+class TimeoutRoleCmd(Command):
 
     def setup(self):
 
@@ -9,7 +11,7 @@ class MyCommand(Command):
         self.aliases.append("roleTimeout")
         self.aliases.append("roleTo")
         self.desc = "Manage the timeout role."
-        self.addArgument(Argument("role", CmdTypes.ROLE))
+        self.addArgument(RoleArgument("role"))
         self.permissions.administrator = True
 
     async def call(self, role, **kwargs):
@@ -18,11 +20,10 @@ class MyCommand(Command):
             await self.respond("Not a valid role identifier.", True)
             return
 
-        db = self.db.getServer(role.server.id) #get the server database for this channel (may be a different server than the caller)
-        dsList = db.enumerateDatasets("timeoutRole")
-        for i in dsList:
-            i.delete()
-        ds = db.createDatasetIfNotExists("timeoutRole", {"roleID":role.id})
-        ds.update()
+        db = self.db.get_db(role.guild.id) #get the server database for this channel (may be a different server than the caller)
+        db.query(TimeoutRole).delete()
+        m = db.new(TimeoutRole)
+        m.role_id = role.id
+        m.save()
 
         await self.respond("successfully changed timeout role to %s" % role.name)

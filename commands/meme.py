@@ -13,9 +13,9 @@ class MyCommand(Command):
         self.name = "meme"
         self.desc = "Meme generator."
         self.allowConsole = False
-        self.addArgument(Argument("template", CmdTypes.STR))
-        self.addArgument(Argument("line1", CmdTypes.STR))
-        self.addArgument(Argument("line2", CmdTypes.STR, True))
+        self.addArgument(StringArgument("template"))
+        self.addArgument(StringArgument("line1"))
+        self.addArgument(StringArgument("line2", True))
 
         self.initLib()
 
@@ -95,7 +95,7 @@ class MyCommand(Command):
                     img.writeText((line["x"], line["y"], line["width"], line["height"]), text, line["color"], None, draw_shadows=line.get("draw_shadow", 0), shadow_color=line.get("shadow_color", (0, 0, 0)))
 
                 self.logger.debug("Uploading...")
-                await self.client.send_file(self.msg.channel, fp=img, filename=img.name, content="Here is your meme: ")
+                await self.msg.channel.send("Here is your meme: ", file=discord.File(img, img.name))
                 return
 
         await self.respond("That template doesn't exist.", True)
