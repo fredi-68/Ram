@@ -2,7 +2,12 @@ import logging
 import asyncio
 import discord
 
+from database import Model, Field
+from database.engine import DatabaseEngine
+
+from .errors import InvalidConfigException
 from ._globals import environment
+
 from core_models import AuditLogChannel
 
 class Argument():
@@ -65,7 +70,7 @@ class Command():
         
         for i in self.names:
             if " " in i or not i:
-                raise ValueError("Command names and aliases may not include whitespaces and must not be empty.")
+                raise InvalidConfigException("Command names and aliases may not include whitespaces and must not be empty.")
 
     def setup(self):
 
@@ -259,3 +264,4 @@ class Command():
         self.msg = responseHandle.getMessage()
         self.db = client.db
         self.audioManager = client.audio
+

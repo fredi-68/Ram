@@ -44,3 +44,13 @@ class CommandCallAbortedException(CommandException):
     """
 
     pass
+
+class InvalidConfigException(CommandException):
+
+    """
+    This exception is raised exclusively during the command loading phase.
+    It indicated an invalid command configuration which prevents the command
+    from initializing correctly.
+    """
+
+    pass

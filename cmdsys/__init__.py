@@ -11,4 +11,6 @@ from .arguments import *
 from ._globals import SUPERUSERS, environment
 from .errors import *
 from .parser import CommandParser
-from .utils import cleanUp, cleanUpRegister, dialogConfirm, dialogReact, load_commands
+from .utils import cleanUp, cleanUpRegister, dialogConfirm, dialogReact
+from .model_commands import AddModelCommand, DeleteModelCommand
+from .loader import load_commands
